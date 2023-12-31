@@ -1,0 +1,6 @@
+target/
+.shuttle-storage
+Secrets*.toml
+.env
+# remove once settled
+migrations/
