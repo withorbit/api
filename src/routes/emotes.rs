@@ -134,6 +134,13 @@ async fn update_emote(
 				approved = $1,
 				nsfw = $2
 			WHERE id = $3
+			RETURNING
+				*,
+				(
+					SELECT to_jsonb("user")
+					FROM (SELECT * FROM users)
+					AS "user"
+				) AS "user!: _"
 		"#,
 		body.approved,
 		body.nsfw,
@@ -143,7 +150,7 @@ async fn update_emote(
 	.await?
 	.ok_or(Error::NotFound)?;
 
-	todo!()
+	Ok(Json(emote))
 }
 
 async fn delete_emote(State(state): State<AppState>, Path(id): Path<String>) -> Result<StatusCode> {
