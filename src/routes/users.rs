@@ -5,8 +5,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::{AppState, Error, Result};
 
-use super::sets::EmoteSet;
-
 #[derive(Debug, Deserialize, Serialize, sqlx::Type)]
 #[sqlx(type_name = "role", rename_all = "lowercase")]
 pub enum Role {
@@ -43,6 +41,15 @@ struct UserEmote {
 	modifier: bool,
 	nsfw: bool,
 	user_id: String,
+}
+
+#[derive(Deserialize, Serialize)]
+struct UserEmoteSet {
+	id: String,
+	name: String,
+	capacity: i32,
+	user_id: String,
+	parent_id: Option<String>,
 }
 
 pub fn router() -> Router<AppState> {
@@ -87,12 +94,12 @@ async fn get_user_emotes(
 ) -> Result<Json<Vec<UserEmote>>> {
 	let emotes = sqlx::query_as!(
 		UserEmote,
-		r#"
+		"
 			SELECT emotes.*
 			FROM users
-				LEFT JOIN emotes ON TRUE
-			WHERE users.id = $1
-		"#,
+				LEFT JOIN emotes ON user_id = $1
+			WHERE emotes.id IS NOT NULL
+		",
 		id
 	)
 	.fetch_all(&state.pool)
@@ -104,6 +111,19 @@ async fn get_user_emotes(
 async fn get_user_sets(
 	State(state): State<AppState>,
 	Path(id): Path<String>,
-) -> Result<Json<Vec<EmoteSet>>> {
-	todo!()
+) -> Result<Json<Vec<UserEmoteSet>>> {
+	let sets = sqlx::query_as!(
+		UserEmoteSet,
+		"
+			SELECT sets.*
+			FROM users
+				LEFT JOIN sets ON user_id = $1
+			WHERE sets.id IS NOT NULL
+		",
+		id
+	)
+	.fetch_all(&state.pool)
+	.await?;
+
+	Ok(Json(sets))
 }
