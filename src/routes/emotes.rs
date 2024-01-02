@@ -12,7 +12,7 @@ use crate::{AppState, Result};
 
 use super::users::User;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Emote {
 	pub id: String,
 	pub name: String,

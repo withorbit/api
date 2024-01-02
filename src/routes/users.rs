@@ -1,11 +1,10 @@
 use axum::extract::{Json, Path, State};
-use axum::routing::{get, post};
+use axum::routing::get;
 use axum::Router;
 use serde::{Deserialize, Serialize};
 
 use crate::{AppState, Error, Result};
 
-use super::emotes::Emote;
 use super::sets::EmoteSet;
 
 #[derive(Debug, Deserialize, Serialize, sqlx::Type)]
@@ -29,6 +28,21 @@ pub struct User {
 	pub roles: Vec<Role>,
 	pub badge_url: Option<String>,
 	pub color_id: Option<String>,
+}
+
+#[derive(Deserialize, Serialize)]
+struct UserEmote {
+	id: String,
+	name: String,
+	tags: Vec<String>,
+	width: i32,
+	height: i32,
+	approved: bool,
+	public: bool,
+	animated: bool,
+	modifier: bool,
+	nsfw: bool,
+	user_id: String,
 }
 
 pub fn router() -> Router<AppState> {
@@ -70,8 +84,21 @@ async fn get_user(State(state): State<AppState>, Path(id): Path<String>) -> Resu
 async fn get_user_emotes(
 	State(state): State<AppState>,
 	Path(id): Path<String>,
-) -> Result<Json<Vec<Emote>>> {
-	todo!()
+) -> Result<Json<Vec<UserEmote>>> {
+	let emotes = sqlx::query_as!(
+		UserEmote,
+		r#"
+			SELECT emotes.*
+			FROM users
+				LEFT JOIN emotes ON TRUE
+			WHERE users.id = $1
+		"#,
+		id
+	)
+	.fetch_all(&state.pool)
+	.await?;
+
+	Ok(Json(emotes))
 }
 
 async fn get_user_sets(
