@@ -166,16 +166,16 @@ async fn update_emote(
 }
 
 async fn delete_emote(State(state): State<AppState>, Path(id): Path<String>) -> Result<StatusCode> {
-	let result = sqlx::query!(
+	let deleted = sqlx::query_scalar!(
 		r#"
-			WITH returned AS (
+			WITH deleted AS (
 				DELETE FROM emotes
 				WHERE id = $1
 				RETURNING 1
 			)
 			SELECT EXISTS (
-				SELECT 1 FROM returned
-			) AS "deleted!"
+				SELECT 1 FROM deleted
+			)
 		"#,
 		id
 	)
@@ -216,7 +216,7 @@ async fn delete_emote(State(state): State<AppState>, Path(id): Path<String>) -> 
 		.await
 		.map_err(|_| Error::Cdn)?;
 
-	if result.deleted {
+	if deleted.unwrap_or_default() {
 		Ok(StatusCode::NO_CONTENT)
 	} else {
 		Err(Error::NotFound)
