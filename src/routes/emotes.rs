@@ -24,6 +24,21 @@ pub struct Emote {
 	pub animated: bool,
 	pub modifier: bool,
 	pub nsfw: bool,
+	pub user_id: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct EmoteWithUser {
+	pub id: String,
+	pub name: String,
+	pub tags: Vec<String>,
+	pub width: i32,
+	pub height: i32,
+	pub approved: bool,
+	pub public: bool,
+	pub animated: bool,
+	pub modifier: bool,
+	pub nsfw: bool,
 
 	#[serde(skip_serializing)]
 	pub user_id: String,
@@ -60,11 +75,11 @@ pub fn router() -> Router<AppState> {
 async fn create_emote(
 	State(state): State<AppState>,
 	Json(body): Json<CreateEmote>,
-) -> Result<(StatusCode, Json<Emote>)> {
+) -> Result<(StatusCode, Json<EmoteWithUser>)> {
 	tracing::debug!(?body);
 
 	let emote = sqlx::query_as!(
-		Emote,
+		EmoteWithUser,
 		r#"
 			INSERT INTO
 				emotes (
@@ -98,9 +113,12 @@ async fn create_emote(
 	Ok((StatusCode::CREATED, Json(emote)))
 }
 
-async fn get_emote(State(state): State<AppState>, Path(id): Path<String>) -> Result<Json<Emote>> {
+async fn get_emote(
+	State(state): State<AppState>,
+	Path(id): Path<String>,
+) -> Result<Json<EmoteWithUser>> {
 	let emote = sqlx::query_as!(
-		Emote,
+		EmoteWithUser,
 		r#"
 			SELECT
 				*,
@@ -134,13 +152,7 @@ async fn update_emote(
 				approved = $1,
 				nsfw = $2
 			WHERE id = $3
-			RETURNING
-				*,
-				(
-					SELECT to_jsonb("user")
-					FROM (SELECT * FROM users)
-					AS "user"
-				) AS "user!: _"
+			RETURNING *
 		"#,
 		body.approved,
 		body.nsfw,
