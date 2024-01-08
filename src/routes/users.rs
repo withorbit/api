@@ -28,30 +28,6 @@ pub struct User {
 	pub color_id: Option<String>,
 }
 
-#[derive(Deserialize, Serialize)]
-struct UserEmote {
-	id: String,
-	name: String,
-	tags: Vec<String>,
-	width: i32,
-	height: i32,
-	approved: bool,
-	public: bool,
-	animated: bool,
-	modifier: bool,
-	nsfw: bool,
-	user_id: String,
-}
-
-#[derive(Deserialize, Serialize)]
-struct UserEmoteSet {
-	id: String,
-	name: String,
-	capacity: i32,
-	user_id: String,
-	parent_id: Option<String>,
-}
-
 pub fn router() -> Router<AppState> {
 	Router::new()
 		.route("/users/me", get(get_current_user))
@@ -88,6 +64,21 @@ async fn get_user(State(state): State<AppState>, Path(id): Path<String>) -> Resu
 	Ok(Json(user))
 }
 
+#[derive(Deserialize, Serialize)]
+struct UserEmote {
+	id: String,
+	name: String,
+	tags: Vec<String>,
+	width: i32,
+	height: i32,
+	approved: bool,
+	public: bool,
+	animated: bool,
+	modifier: bool,
+	nsfw: bool,
+	user_id: String,
+}
+
 async fn get_user_emotes(
 	State(state): State<AppState>,
 	Path(id): Path<String>,
@@ -106,6 +97,15 @@ async fn get_user_emotes(
 	.await?;
 
 	Ok(Json(emotes))
+}
+
+#[derive(Deserialize, Serialize)]
+struct UserEmoteSet {
+	id: String,
+	name: String,
+	capacity: i32,
+	user_id: String,
+	parent_id: Option<String>,
 }
 
 async fn get_user_sets(
