@@ -5,17 +5,22 @@ use axum::response::{IntoResponse, Response};
 pub enum Error {
 	#[error("404 Not Found")]
 	NotFound,
+	#[error("422 Unprocessable Entity")]
+	UnprocessableEntity,
 	#[error("500 Internal Server Error (CDN)")]
 	Cdn,
 	#[error("500 Internal Server Error (Database)")]
 	Database(#[from] sqlx::Error),
+	#[error("500 Internal Server Error (JSON)")]
+	Json(#[from] serde_json::Error),
 }
 
 impl Error {
 	fn status_code(&self) -> StatusCode {
 		match self {
 			Self::NotFound => StatusCode::NOT_FOUND,
-			Self::Database(_) | Self::Cdn => StatusCode::INTERNAL_SERVER_ERROR,
+			Self::UnprocessableEntity => StatusCode::UNPROCESSABLE_ENTITY,
+			Self::Cdn | Self::Database(_) | Self::Json(_) => StatusCode::INTERNAL_SERVER_ERROR,
 		}
 	}
 }
@@ -24,6 +29,9 @@ impl IntoResponse for Error {
 	fn into_response(self) -> Response {
 		match self {
 			Self::Database(ref err) => {
+				tracing::error!(?err);
+			}
+			Self::Json(ref err) => {
 				tracing::error!(?err);
 			}
 			_ => (),
