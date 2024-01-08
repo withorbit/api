@@ -63,13 +63,14 @@ pub struct CreateEmote {
 	animated: bool,
 	modifier: bool,
 	nsfw: bool,
-	user_id: String,
 }
 
 async fn create_emote(
 	State(state): State<AppState>,
 	Json(body): Json<CreateEmote>,
 ) -> Result<(StatusCode, Json<EmoteWithUser>)> {
+	// todo: handle auth
+
 	tracing::debug!(?body);
 
 	let emote = sqlx::query_as!(
@@ -99,7 +100,7 @@ async fn create_emote(
 		body.animated,
 		body.modifier,
 		body.nsfw,
-		body.user_id
+		"!!TODO!!"
 	)
 	.fetch_one(&state.pool)
 	.await?;
