@@ -5,6 +5,14 @@ use serde::{Deserialize, Serialize};
 
 use crate::{AppState, Error, Result};
 
+pub fn router() -> Router<AppState> {
+	Router::new()
+		.route("/users/me", get(get_current_user))
+		.route("/users/:id", get(get_user))
+		.route("/users/:id/emotes", get(get_user_emotes))
+		.route("/users/:id/sets", get(get_user_sets))
+}
+
 #[derive(Debug, Deserialize, Serialize, sqlx::Type)]
 #[sqlx(type_name = "role", rename_all = "lowercase")]
 pub enum Role {
@@ -26,14 +34,6 @@ pub struct User {
 	pub roles: Vec<Role>,
 	pub badge_url: Option<String>,
 	pub color_id: Option<String>,
-}
-
-pub fn router() -> Router<AppState> {
-	Router::new()
-		.route("/users/me", get(get_current_user))
-		.route("/users/:id", get(get_user))
-		.route("/users/:id/emotes", get(get_user_emotes))
-		.route("/users/:id/sets", get(get_user_sets))
 }
 
 async fn get_current_user() {

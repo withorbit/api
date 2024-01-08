@@ -9,6 +9,14 @@ use crate::{AppState, Error, Result};
 
 use super::emotes::Emote;
 
+pub fn router() -> Router<AppState> {
+	Router::new()
+		.route("/sets", post(create_set))
+		.route("/sets/:id", get(get_set))
+		.route("/sets/:id", patch(update_set))
+		.route("/sets/:id", delete(delete_set))
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct EmoteSet {
 	pub id: String,
@@ -26,14 +34,6 @@ pub struct EmoteSetWithEmotes {
 	pub user_id: String,
 	pub parent_id: Option<String>,
 	pub emotes: Vec<Emote>,
-}
-
-pub fn router() -> Router<AppState> {
-	Router::new()
-		.route("/sets", post(create_set))
-		.route("/sets/:id", get(get_set))
-		.route("/sets/:id", patch(update_set))
-		.route("/sets/:id", delete(delete_set))
 }
 
 #[derive(Debug, Deserialize)]

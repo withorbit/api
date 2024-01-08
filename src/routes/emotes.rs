@@ -12,6 +12,14 @@ use crate::{AppState, Result};
 
 use super::users::User;
 
+pub fn router() -> Router<AppState> {
+	Router::new()
+		.route("/emotes", post(create_emote))
+		.route("/emotes/:id", get(get_emote))
+		.route("/emotes/:id", patch(update_emote))
+		.route("/emotes/:id", delete(delete_emote))
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Emote {
 	pub id: String,
@@ -43,14 +51,6 @@ pub struct EmoteWithUser {
 	#[serde(skip_serializing)]
 	pub user_id: String,
 	pub user: Jsonb<User>,
-}
-
-pub fn router() -> Router<AppState> {
-	Router::new()
-		.route("/emotes", post(create_emote))
-		.route("/emotes/:id", get(get_emote))
-		.route("/emotes/:id", patch(update_emote))
-		.route("/emotes/:id", delete(delete_emote))
 }
 
 #[derive(Debug, Deserialize, Serialize)]
