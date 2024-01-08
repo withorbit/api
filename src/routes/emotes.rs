@@ -45,6 +45,14 @@ pub struct EmoteWithUser {
 	pub user: Jsonb<User>,
 }
 
+pub fn router() -> Router<AppState> {
+	Router::new()
+		.route("/emotes", post(create_emote))
+		.route("/emotes/:id", get(get_emote))
+		.route("/emotes/:id", patch(update_emote))
+		.route("/emotes/:id", delete(delete_emote))
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct CreateEmote {
 	name: String,
@@ -56,20 +64,6 @@ pub struct CreateEmote {
 	modifier: bool,
 	nsfw: bool,
 	user_id: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct UpdateEmote {
-	approved: Option<bool>,
-	nsfw: Option<bool>,
-}
-
-pub fn router() -> Router<AppState> {
-	Router::new()
-		.route("/emotes", post(create_emote))
-		.route("/emotes/:id", get(get_emote))
-		.route("/emotes/:id", patch(update_emote))
-		.route("/emotes/:id", delete(delete_emote))
 }
 
 async fn create_emote(
@@ -137,6 +131,12 @@ async fn get_emote(
 	.ok_or(Error::NotFound)?;
 
 	Ok(Json(emote))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateEmote {
+	approved: Option<bool>,
+	nsfw: Option<bool>,
 }
 
 async fn update_emote(
