@@ -2,7 +2,6 @@ use axum::Router;
 
 use crate::AppState;
 
-pub mod auth;
 pub mod channels;
 pub mod emotes;
 pub mod sets;

@@ -4,9 +4,7 @@ mod snowflake;
 
 use std::time::Duration;
 
-use axum::routing::get;
 use axum::Router;
-use routes::auth::AuthState;
 use shuttle_secrets::SecretStore;
 use sqlx::postgres::PgPoolOptions;
 use tower::ServiceBuilder;
@@ -49,16 +47,7 @@ async fn main(#[shuttle_secrets::Secrets] secrets: SecretStore) -> shuttle_axum:
 		pool,
 	};
 
-	let auth_state = AuthState {
-		twitch_client_id: get_secret(&secrets, "TWITCH_CLIENT_ID"),
-		twitch_client_secret: get_secret(&secrets, "TWITCH_CLIENT_SECRET"),
-	};
-
 	let router = Router::new()
-		.route(
-			"/login/twitch",
-			get(routes::auth::login).with_state(auth_state),
-		)
 		.nest("/api", routes::router())
 		.layer(
 			ServiceBuilder::new()
