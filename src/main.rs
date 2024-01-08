@@ -2,11 +2,15 @@ mod error;
 mod routes;
 mod snowflake;
 
+use std::time::Duration;
+
 use axum::routing::get;
 use axum::Router;
 use routes::auth::AuthState;
 use shuttle_secrets::SecretStore;
 use sqlx::postgres::PgPoolOptions;
+use tower::ServiceBuilder;
+use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -56,7 +60,11 @@ async fn main(#[shuttle_secrets::Secrets] secrets: SecretStore) -> shuttle_axum:
 			get(routes::auth::login).with_state(auth_state),
 		)
 		.nest("/api", routes::router())
-		.layer(TraceLayer::new_for_http())
+		.layer(
+			ServiceBuilder::new()
+				.layer(TraceLayer::new_for_http())
+				.layer(TimeoutLayer::new(Duration::from_secs(120))),
+		)
 		.with_state(app_state);
 
 	Ok(router.into())
