@@ -1,5 +1,6 @@
 target/
 .shuttle-storage
+.sqlx
 Secrets*.toml
 .env
 # remove once settled
