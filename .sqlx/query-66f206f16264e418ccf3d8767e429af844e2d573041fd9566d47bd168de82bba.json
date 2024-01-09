@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n\t\t\tWITH deleted AS (\n\t\t\t\tDELETE FROM emotes\n\t\t\t\tWHERE id = $1\n\t\t\t\tRETURNING 1\n\t\t\t)\n\t\t\tSELECT EXISTS (\n\t\t\t\tSELECT 1 FROM deleted\n\t\t\t)\n\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "exists",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "66f206f16264e418ccf3d8767e429af844e2d573041fd9566d47bd168de82bba"
+}

@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n\t\t\tWITH returned AS (\n\t\t\t\tDELETE FROM sets\n\t\t\t\tWHERE id = $1\n\t\t\t\tRETURNING 1\n\t\t\t)\n\t\t\tSELECT EXISTS (\n\t\t\t\tSELECT 1 FROM returned\n\t\t\t)\n\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "exists",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "64f3b0636929e5ade2c2e9fd69c8f7b489edfb0a22727f648d6d7f0ba1092a49"
+}

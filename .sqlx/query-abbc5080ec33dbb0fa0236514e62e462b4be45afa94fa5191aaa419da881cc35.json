@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n\t\t\tSELECT\n\t\t\t\t*,\n\t\t\t\t(\n\t\t\t\t\tSELECT to_jsonb(\"user\")\n\t\t\t\t\tFROM (SELECT * FROM users)\n\t\t\t\t\tAS \"user\"\n\t\t\t\t) AS \"user!: _\"\n\t\t\tFROM emotes\n\t\t\tWHERE id = $1\n\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "tags",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 3,
+        "name": "width",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "height",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "approved",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "public",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "animated",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "modifier",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "nsfw",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "user_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "user!: _",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "abbc5080ec33dbb0fa0236514e62e462b4be45afa94fa5191aaa419da881cc35"
+}

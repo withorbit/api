@@ -1,0 +1,82 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n\t\t\tSELECT emotes.*\n\t\t\tFROM users\n\t\t\t\tLEFT JOIN emotes ON user_id = $1\n\t\t\tWHERE emotes.id IS NOT NULL\n\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "tags",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 3,
+        "name": "width",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "height",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "approved",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "public",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "animated",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "modifier",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "nsfw",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "user_id",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "1f5984e50415b31b1dffbb64d80cb2dca3355de82bea6cf9cf722cf8f10ab66d"
+}

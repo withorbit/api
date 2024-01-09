@@ -1,0 +1,80 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n\t\t\tSELECT\n\t\t\t\tid,\n\t\t\t\ttwitch_id,\n\t\t\t\tusername,\n\t\t\t\tavatar_url,\n\t\t\t\troles AS \"roles: Vec<Role>\",\n\t\t\t\tbadge_url,\n\t\t\t\tcolor_id\n\t\t\tFROM users\n\t\t\tWHERE id = $1\n\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "twitch_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "avatar_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "roles: Vec<Role>",
+        "type_info": {
+          "Custom": {
+            "name": "_role",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "role",
+                  "kind": {
+                    "Enum": [
+                      "verified",
+                      "subscriber",
+                      "founder",
+                      "contributor",
+                      "maintainer",
+                      "moderator",
+                      "admin"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "badge_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "color_id",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "7d7b2e110d67dab073acf42900b29eec5dad575553249ec00677d8142e16f61d"
+}

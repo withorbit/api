@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n\t\t\tSELECT\n\t\t\t\tchannel_editors.coalesce AS \"editors!: Jsonb<Vec<User>>\"\n\t\t\tFROM\n\t\t\t\tchannels\n\t\t\t\tLEFT JOIN LATERAL (\n\t\t\t\t\tSELECT COALESCE(jsonb_agg(data), '[]')\n\t\t\t\t\tFROM (\n\t\t\t\t\t\tSELECT get_editors.data\n\t\t\t\t\t\tFROM\n\t\t\t\t\t\t\teditor_for AS m2m\n\t\t\t\t\t\t\tLEFT JOIN LATERAL (\n\t\t\t\t\t\t\t\tSELECT to_jsonb(editor) AS data\n\t\t\t\t\t\t\t\tFROM (\n\t\t\t\t\t\t\t\t\tSELECT users.*\n\t\t\t\t\t\t\t\t\tFROM users\n\t\t\t\t\t\t\t\t\tWHERE m2m.user_id = users.id\n\t\t\t\t\t\t\t\t) AS editor\n\t\t\t\t\t\t\t) AS get_editors ON true\n\t\t\t\t\t\tWHERE m2m.channel_id = channels.id\n\t\t\t\t\t) AS _\n\t\t\t\t) AS channel_editors ON TRUE\n\t\t\tWHERE channels.id = $1\n\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "editors!: Jsonb<Vec<User>>",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "513b5c27f4057204416c3f91da7160369d189c0518372c0bf9ef3298229fe792"
+}

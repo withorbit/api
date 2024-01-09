@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n\t\t\tINSERT INTO editor_for (channel_id, user_id)\n\t\t\tVALUES ($1, $2)\n\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e71d7e192548d1dc960edd4037e6cbb6334d3a2c76f7936454c4ddf9e261e27e"
+}
