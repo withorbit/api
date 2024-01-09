@@ -98,30 +98,18 @@ async fn add_channel_editor(
 	State(state): State<AppState>,
 	Path((id, user_id)): Path<(String, String)>,
 ) -> Result<StatusCode> {
-	let returned = sqlx::query_scalar!(
+	sqlx::query!(
 		r#"
-			WITH returned AS (
-				UPDATE editor_for
-				SET
-					channel_id = $1,
-					user_id = $2
-				RETURNING 1
-			)
-			SELECT EXISTS (
-				SELECT 1 FROM returned
-			)
+			INSERT INTO editor_for (channel_id, user_id)
+			VALUES ($1, $2)
 		"#,
 		id,
 		user_id
 	)
-	.fetch_one(&state.pool)
+	.execute(&state.pool)
 	.await?;
 
-	if returned.is_some() {
-		Ok(StatusCode::NO_CONTENT)
-	} else {
-		Err(Error::NotFound)
-	}
+	Ok(StatusCode::NO_CONTENT)
 }
 
 async fn get_channel_emotes(
