@@ -3,6 +3,7 @@ use axum::http::StatusCode;
 use axum::routing::{delete, get, patch, post};
 use axum::Router;
 use serde::{Deserialize, Serialize};
+use sqlx::types::Json as Jsonb;
 
 use crate::snowflake::Snowflake;
 use crate::{AppState, Error, Result};
@@ -33,7 +34,7 @@ pub struct EmoteSetWithEmotes {
 	pub capacity: i32,
 	pub user_id: String,
 	pub parent_id: Option<String>,
-	pub emotes: Vec<Emote>,
+	pub emotes: Jsonb<Vec<Emote>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -70,11 +71,12 @@ async fn get_set(
 	State(state): State<AppState>,
 	Path(id): Path<String>,
 ) -> Result<Json<EmoteSetWithEmotes>> {
-	let raw_set = sqlx::query!(
+	let set = sqlx::query_as!(
+		EmoteSetWithEmotes,
 		r#"
 			SELECT
 				sets.*,
-				set_emotes.coalesce AS emotes
+				set_emotes.coalesce AS "emotes!: _"
 			FROM
 				sets
 				LEFT JOIN LATERAL (
@@ -102,16 +104,7 @@ async fn get_set(
 	.await?
 	.ok_or(Error::NotFound)?;
 
-	let emotes: Vec<Emote> = serde_json::from_value(raw_set.emotes.unwrap_or_default())?;
-
-	Ok(Json(EmoteSetWithEmotes {
-		id: raw_set.id,
-		name: raw_set.name,
-		capacity: raw_set.capacity,
-		user_id: raw_set.user_id,
-		parent_id: raw_set.parent_id,
-		emotes,
-	}))
+	Ok(Json(set))
 }
 
 #[derive(Debug, Deserialize)]
