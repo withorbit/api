@@ -2,6 +2,7 @@ use axum::extract::{Json, Path, State};
 use axum::routing::get;
 use axum::Router;
 use serde::{Deserialize, Serialize};
+use sqlx::{Pool, Postgres};
 
 use crate::{AppState, Error, Result};
 
@@ -83,13 +84,17 @@ async fn get_user_emotes(
 	State(state): State<AppState>,
 	Path(id): Path<String>,
 ) -> Result<Json<Vec<UserEmote>>> {
+	if !user_exists(&state.pool, &id).await {
+		return Err(Error::NotFound("Unknown user.".to_string()));
+	}
+
 	let emotes = sqlx::query_as!(
 		UserEmote,
 		"
 			SELECT emotes.*
 			FROM users
-				LEFT JOIN emotes ON user_id = $1
-			WHERE emotes.id IS NOT NULL
+				LEFT JOIN emotes ON true
+			WHERE user_id = $1
 		",
 		id
 	)
@@ -112,13 +117,17 @@ async fn get_user_sets(
 	State(state): State<AppState>,
 	Path(id): Path<String>,
 ) -> Result<Json<Vec<UserEmoteSet>>> {
+	if !user_exists(&state.pool, &id).await {
+		return Err(Error::NotFound("Unknown user.".to_string()));
+	}
+
 	let sets = sqlx::query_as!(
 		UserEmoteSet,
 		"
 			SELECT sets.*
 			FROM users
-				LEFT JOIN sets ON user_id = $1
-			WHERE sets.id IS NOT NULL
+				LEFT JOIN sets ON true
+			WHERE user_id = $1
 		",
 		id
 	)
@@ -126,4 +135,14 @@ async fn get_user_sets(
 	.await?;
 
 	Ok(Json(sets))
+}
+
+async fn user_exists(pool: &Pool<Postgres>, id: &String) -> bool {
+	sqlx::query_scalar!(
+		r#"SELECT EXISTS (SELECT id FROM users WHERE id = $1) AS "exists!""#,
+		id
+	)
+	.fetch_one(pool)
+	.await
+	.unwrap()
 }
