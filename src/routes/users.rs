@@ -59,7 +59,7 @@ async fn get_user(State(state): State<AppState>, Path(id): Path<String>) -> Resu
 	)
 	.fetch_optional(&state.pool)
 	.await?
-	.ok_or(Error::NotFound)?;
+	.ok_or(Error::NotFound("Unknown user.".to_string()))?;
 
 	Ok(Json(user))
 }

@@ -129,7 +129,7 @@ async fn get_emote(
 	)
 	.fetch_optional(&state.pool)
 	.await?
-	.ok_or(Error::NotFound)?;
+	.ok_or(Error::NotFound("Unknown emote.".to_string()))?;
 
 	Ok(Json(emote))
 }
@@ -161,7 +161,7 @@ async fn update_emote(
 	)
 	.fetch_optional(&state.pool)
 	.await?
-	.ok_or(Error::NotFound)?;
+	.ok_or(Error::NotFound("Unknown emote.".to_string()))?;
 
 	Ok(Json(emote))
 }
@@ -220,6 +220,6 @@ async fn delete_emote(State(state): State<AppState>, Path(id): Path<String>) -> 
 	if deleted.unwrap_or_default() {
 		Ok(StatusCode::NO_CONTENT)
 	} else {
-		Err(Error::NotFound)
+		Err(Error::NotFound("Unknown emote.".to_string()))
 	}
 }

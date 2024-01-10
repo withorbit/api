@@ -1,10 +1,17 @@
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use axum::Json;
+use serde_json::json;
+
+// todo: add json error
+// todo: add constraint error handling
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-	#[error("404 Not Found")]
-	NotFound,
+	#[error("{0}")]
+	BadRequest(String),
+	#[error("{0}")]
+	NotFound(String),
 	#[error("422 Unprocessable Entity")]
 	UnprocessableEntity,
 	#[error("500 Internal Server Error (CDN)")]
@@ -18,7 +25,8 @@ pub enum Error {
 impl Error {
 	fn status_code(&self) -> StatusCode {
 		match self {
-			Self::NotFound => StatusCode::NOT_FOUND,
+			Self::BadRequest(_) => StatusCode::BAD_REQUEST,
+			Self::NotFound(_) => StatusCode::NOT_FOUND,
 			Self::UnprocessableEntity => StatusCode::UNPROCESSABLE_ENTITY,
 			Self::Cdn | Self::Database(_) | Self::Json(_) => StatusCode::INTERNAL_SERVER_ERROR,
 		}
@@ -37,6 +45,8 @@ impl IntoResponse for Error {
 			_ => (),
 		}
 
-		(self.status_code(), self.to_string()).into_response()
+		let body = json!({ "message": self.to_string() });
+
+		(self.status_code(), Json(body)).into_response()
 	}
 }

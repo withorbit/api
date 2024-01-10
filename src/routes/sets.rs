@@ -102,7 +102,7 @@ async fn get_set(
 	)
 	.fetch_optional(&state.pool)
 	.await?
-	.ok_or(Error::NotFound)?;
+	.ok_or(Error::NotFound("Unknown emote set.".to_string()))?;
 
 	Ok(Json(set))
 }
@@ -134,7 +134,7 @@ async fn update_set(
 	)
 	.fetch_optional(&state.pool)
 	.await?
-	.ok_or(Error::NotFound)?;
+	.ok_or(Error::NotFound("Unknown emote set.".to_string()))?;
 
 	Ok(Json(set))
 }
@@ -159,6 +159,6 @@ async fn delete_set(State(state): State<AppState>, Path(id): Path<String>) -> Re
 	if deleted.unwrap_or_default() {
 		Ok(StatusCode::NO_CONTENT)
 	} else {
-		Err(Error::NotFound)
+		Err(Error::NotFound("Unknown emote set.".to_string()))
 	}
 }
