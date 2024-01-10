@@ -84,7 +84,7 @@ async fn get_set(
 					FROM (
 						SELECT get_emotes.data
 						FROM
-							emote_in_sets AS m2m
+							emotes_to_sets AS m2m
 							LEFT JOIN LATERAL (
 								SELECT to_jsonb(emote) AS data
 								FROM (
