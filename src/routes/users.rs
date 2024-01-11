@@ -131,8 +131,9 @@ async fn get_user_emotes(
 		UserEmote,
 		"
 			SELECT emotes.*
-			FROM users
-				LEFT JOIN emotes ON true
+			FROM
+				users
+				LEFT JOIN emotes ON users.id = emotes.user_id
 			WHERE user_id = $1
 		",
 		id
@@ -164,8 +165,9 @@ async fn get_user_sets(
 		UserEmoteSet,
 		"
 			SELECT sets.*
-			FROM users
-				LEFT JOIN sets ON true
+			FROM
+				users
+				LEFT JOIN sets ON users.id = sets.user_id
 			WHERE user_id = $1
 		",
 		id
