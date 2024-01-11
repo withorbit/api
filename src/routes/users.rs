@@ -135,6 +135,7 @@ async fn get_user_emotes(
 				users
 				LEFT JOIN emotes ON users.id = emotes.user_id
 			WHERE user_id = $1
+			ORDER BY id
 		",
 		id
 	)
@@ -169,6 +170,7 @@ async fn get_user_sets(
 				users
 				LEFT JOIN sets ON users.id = sets.user_id
 			WHERE user_id = $1
+			ORDER BY id
 		",
 		id
 	)
