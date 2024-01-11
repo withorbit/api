@@ -76,27 +76,15 @@ async fn get_set(
 		r#"
 			SELECT
 				sets.*,
-				set_emotes.coalesce AS "emotes!: _"
+				COALESCE(
+					jsonb_agg(emotes.*) FILTER (WHERE emotes.id IS NOT NULL), '[]'
+				) AS "emotes!: _"
 			FROM
 				sets
-				LEFT JOIN LATERAL (
-					SELECT COALESCE(jsonb_agg(data), '[]')
-					FROM (
-						SELECT get_emotes.data
-						FROM
-							emotes_to_sets AS m2m
-							LEFT JOIN LATERAL (
-								SELECT to_jsonb(emote) AS data
-								FROM (
-									SELECT emotes.*
-									FROM emotes
-									WHERE m2m.emote_id = emotes.id
-								) AS emote
-							) AS get_emotes ON true
-						WHERE m2m.set_id = sets.id
-					) AS _
-				) AS set_emotes ON TRUE
-			WHERE sets.user_id = $1
+				LEFT JOIN emotes_to_sets AS m2m ON sets.id = m2m.set_id
+				LEFT JOIN emotes ON m2m.emote_id = emotes.id
+			WHERE sets.id = $1
+			GROUP BY sets.id
 		"#,
 		id
 	)

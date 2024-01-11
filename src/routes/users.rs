@@ -2,7 +2,7 @@ use axum::extract::{Json, Path, State};
 use axum::routing::get;
 use axum::Router;
 use serde::{Deserialize, Serialize};
-use sqlx::types::Json as Jsonb;
+use sqlx::postgres::{PgHasArrayType, PgTypeInfo};
 use sqlx::{Pool, Postgres};
 
 use crate::{AppState, Error, Result};
@@ -27,6 +27,12 @@ pub enum Role {
 	Maintainer,
 	Moderator,
 	Admin,
+}
+
+impl PgHasArrayType for Role {
+	fn array_type_info() -> sqlx::postgres::PgTypeInfo {
+		PgTypeInfo::with_name("_role")
+	}
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -54,7 +60,7 @@ async fn get_user(State(state): State<AppState>, Path(id): Path<String>) -> Resu
 				twitch_id,
 				username,
 				avatar_url,
-				roles AS "roles: Vec<Role>",
+				roles AS "roles: _",
 				badge_url,
 				color_id,
 				channel_set_id
@@ -74,34 +80,27 @@ async fn get_user_editors(
 	State(state): State<AppState>,
 	Path(id): Path<String>,
 ) -> Result<Json<Vec<User>>> {
-	let Jsonb(editors) = sqlx::query_scalar!(
+	let editors = sqlx::query_as!(
+		User,
 		r#"
 			SELECT
-				user_editors.coalesce AS "editors!: Jsonb<Vec<User>>"
+				editor.id,
+				editor.twitch_id,
+				editor.username,
+				editor.avatar_url,
+				editor.roles AS "roles: _",
+				editor.badge_url,
+				editor.color_id,
+				editor.channel_set_id
 			FROM
 				users
-				LEFT JOIN LATERAL (
-					SELECT COALESCE(jsonb_agg(data), '[]')
-					FROM (
-						SELECT get_editors.data
-						FROM
-							users_to_editors AS m2m
-							LEFT JOIN LATERAL (
-								SELECT to_jsonb(editor) AS data
-								FROM (
-									SELECT users.*
-									FROM users
-									WHERE m2m.editor_id = users.id
-								) AS editor
-							) AS get_editors ON true
-						WHERE m2m.user_id = users.id
-					) AS _
-				) AS user_editors ON true
-			WHERE users.id = $1
+				JOIN users_to_editors AS m2m ON users.id = m2m.user_id
+				JOIN users AS editor ON editor.id = m2m.editor_id
+			WHERE users.id = $1;
 		"#,
 		id
 	)
-	.fetch_one(&state.pool)
+	.fetch_all(&state.pool)
 	.await?;
 
 	Ok(Json(editors))
@@ -136,7 +135,7 @@ async fn get_user_emotes(
 			SELECT emotes.*
 			FROM
 				users
-				LEFT JOIN emotes ON users.id = emotes.user_id
+				JOIN emotes ON users.id = emotes.user_id
 			WHERE user_id = $1
 			ORDER BY id
 		",
@@ -171,7 +170,7 @@ async fn get_user_sets(
 			SELECT sets.*
 			FROM
 				users
-				LEFT JOIN sets ON users.id = sets.user_id
+				JOIN sets ON users.id = sets.user_id
 			WHERE user_id = $1
 			ORDER BY id
 		",

@@ -86,9 +86,9 @@ async fn create_emote(
 			RETURNING
 				*,
 				(
-					SELECT to_jsonb("user")
-					FROM (SELECT * FROM users)
-					AS "user"
+					SELECT to_jsonb(users.*)
+					FROM users
+					WHERE users.id = $10
 				) AS "user!: _"
 		"#,
 		Snowflake::new().0,
@@ -116,14 +116,12 @@ async fn get_emote(
 		EmoteWithUser,
 		r#"
 			SELECT
-				*,
-				(
-					SELECT to_jsonb("user")
-					FROM (SELECT * FROM users)
-					AS "user"
-				) AS "user!: _"
-			FROM emotes
-			WHERE id = $1
+				emotes.*,
+				to_jsonb(users.*) AS "user!: _"
+			FROM
+				emotes
+				LEFT JOIN users ON emotes.user_id = users.id
+			WHERE emotes.id = $1
 		"#,
 		id
 	)
@@ -169,13 +167,13 @@ async fn update_emote(
 async fn delete_emote(State(state): State<AppState>, Path(id): Path<String>) -> Result<StatusCode> {
 	let deleted = sqlx::query_scalar!(
 		r#"
-			WITH deleted AS (
+			WITH returned AS (
 				DELETE FROM emotes
 				WHERE id = $1
 				RETURNING 1
 			)
 			SELECT EXISTS (
-				SELECT 1 FROM deleted
+				SELECT 1 FROM returned
 			)
 		"#,
 		id
