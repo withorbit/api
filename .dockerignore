@@ -1,0 +1,9 @@
+.git
+.vscode
+.DS_Store
+target
+justfile
+Secrets*.toml
+*.md
+.dockerignore
+.gitignore
