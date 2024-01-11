@@ -12,10 +12,10 @@ use crate::{AppState, Error, Result};
 pub fn router() -> Router<AppState> {
 	Router::new()
 		.route("/users/$me", get(get_current_user))
+		.route("/users/$me/editors/:id", put(add_user_editor))
+		.route("/users/$me/editors/:id", delete(remove_user_editor))
 		.route("/users/:id", get(get_user))
 		.route("/users/:id/editors", get(get_user_editors))
-		.route("/users/:id/editors/:userId", put(add_user_editor))
-		.route("/users/:id/editors/:userId", delete(remove_user_editor))
 		.route("/users/:id/emotes", get(get_user_emotes))
 		.route("/users/:id/sets", get(get_user_sets))
 		.route("/users/:id/sets/$channel", get(get_user_channel_set))
@@ -112,18 +112,14 @@ async fn get_user_editors(
 
 async fn add_user_editor(
 	State(state): State<AppState>,
-	Path((user_id, editor_id)): Path<(String, String)>,
+	Path(id): Path<String>,
 ) -> Result<StatusCode> {
-	if !user_exists(&state.pool, &user_id).await || !user_exists(&state.pool, &editor_id).await {
-		return Err(JsonError::UnknownUser.into());
-	}
-
 	sqlx::query!(
 		"INSERT INTO users_to_editors (user_id, editor_id)
 		VALUES ($1, $2)
 		ON CONFLICT DO NOTHING",
-		user_id,
-		editor_id
+		"!!TODO!!",
+		id
 	)
 	.execute(&state.pool)
 	.await
@@ -134,7 +130,7 @@ async fn add_user_editor(
 
 async fn remove_user_editor(
 	State(state): State<AppState>,
-	Path((user_id, editor_id)): Path<(String, String)>,
+	Path(id): Path<String>,
 ) -> Result<StatusCode> {
 	let deleted = sqlx::query_scalar!(
 		r#"
@@ -147,8 +143,8 @@ async fn remove_user_editor(
 				SELECT 1 FROM returned
 			) AS "exists!"
 		"#,
-		user_id,
-		editor_id
+		"!!TODO!!",
+		id
 	)
 	.fetch_one(&state.pool)
 	.await?;
