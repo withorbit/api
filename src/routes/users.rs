@@ -1,5 +1,6 @@
 use axum::extract::{Json, Path, State};
-use axum::routing::get;
+use axum::http::StatusCode;
+use axum::routing::{delete, get, put};
 use axum::Router;
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::{PgHasArrayType, PgTypeInfo};
@@ -12,6 +13,8 @@ pub fn router() -> Router<AppState> {
 		.route("/users/$me", get(get_current_user))
 		.route("/users/:id", get(get_user))
 		.route("/users/:id/editors", get(get_user_editors))
+		.route("/users/:id/editors/:userId", put(add_user_editor))
+		.route("/users/:id/editors/:userId", delete(remove_user_editor))
 		.route("/users/:id/emotes", get(get_user_emotes))
 		.route("/users/:id/sets", get(get_user_sets))
 		.route("/users/:id/sets/$channel", get(get_user_channel_set))
@@ -104,6 +107,51 @@ async fn get_user_editors(
 	.await?;
 
 	Ok(Json(editors))
+}
+
+async fn add_user_editor(
+	State(state): State<AppState>,
+	Path((user_id, editor_id)): Path<(String, String)>,
+) -> Result<StatusCode> {
+	if user_id == editor_id {
+		return Err(Error::BadRequest(
+			"User cannot add themselves as an editor.".to_string(),
+		));
+	}
+
+	sqlx::query!(
+		"INSERT INTO users_to_editors (user_id, editor_id)
+		VALUES ($1, $2)
+		ON CONFLICT DO NOTHING",
+		user_id,
+		editor_id
+	)
+	.execute(&state.pool)
+	.await?;
+
+	Ok(StatusCode::NO_CONTENT)
+}
+
+async fn remove_user_editor(
+	State(state): State<AppState>,
+	Path((user_id, editor_id)): Path<(String, String)>,
+) -> Result<StatusCode> {
+	if user_id == editor_id {
+		return Err(Error::BadRequest(
+			"User cannot remove themselves as an editor.".to_string(),
+		));
+	}
+
+	sqlx::query!(
+		"DELETE FROM users_to_editors
+		WHERE user_id = $1 AND editor_id = $2",
+		user_id,
+		editor_id
+	)
+	.execute(&state.pool)
+	.await?;
+
+	Ok(StatusCode::NO_CONTENT)
 }
 
 #[derive(Deserialize, Serialize)]
