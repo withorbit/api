@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::postgres::{PgHasArrayType, PgTypeInfo};
 use sqlx::{Pool, Postgres};
 
+use crate::error::{JsonError, ResultExt};
 use crate::{AppState, Error, Result};
 
 pub fn router() -> Router<AppState> {
@@ -74,7 +75,7 @@ async fn get_user(State(state): State<AppState>, Path(id): Path<String>) -> Resu
 	)
 	.fetch_optional(&state.pool)
 	.await?
-	.ok_or(Error::NotFound("Unknown user.".to_string()))?;
+	.ok_or(JsonError::UnknownUser)?;
 
 	Ok(Json(user))
 }
@@ -114,13 +115,7 @@ async fn add_user_editor(
 	Path((user_id, editor_id)): Path<(String, String)>,
 ) -> Result<StatusCode> {
 	if !user_exists(&state.pool, &user_id).await || !user_exists(&state.pool, &editor_id).await {
-		return Err(Error::BadRequest("Unknown user.".to_string()));
-	}
-
-	if user_id == editor_id {
-		return Err(Error::BadRequest(
-			"User cannot add themselves as an editor.".to_string(),
-		));
+		return Err(JsonError::UnknownUser.into());
 	}
 
 	sqlx::query!(
@@ -131,7 +126,8 @@ async fn add_user_editor(
 		editor_id
 	)
 	.execute(&state.pool)
-	.await?;
+	.await
+	.on_constraint("user_cannot_add_self", JsonError::UserCannotAddSelf.into())?;
 
 	Ok(StatusCode::NO_CONTENT)
 }
@@ -140,12 +136,6 @@ async fn remove_user_editor(
 	State(state): State<AppState>,
 	Path((user_id, editor_id)): Path<(String, String)>,
 ) -> Result<StatusCode> {
-	if user_id == editor_id {
-		return Err(Error::BadRequest(
-			"User cannot remove themselves as an editor.".to_string(),
-		));
-	}
-
 	let deleted = sqlx::query_scalar!(
 		r#"
 			WITH returned AS (
@@ -166,7 +156,7 @@ async fn remove_user_editor(
 	if deleted {
 		Ok(StatusCode::NO_CONTENT)
 	} else {
-		Err(Error::NotFound("Unknown user.".to_string()))
+		Err(JsonError::UnknownUser.into())
 	}
 }
 
@@ -225,7 +215,7 @@ async fn get_user_sets(
 	Path(id): Path<String>,
 ) -> Result<Json<Vec<UserEmoteSet>>> {
 	if !user_exists(&state.pool, &id).await {
-		return Err(Error::NotFound("Unknown user.".to_string()));
+		return Err(JsonError::UnknownUser.into());
 	}
 
 	let sets = sqlx::query_as!(

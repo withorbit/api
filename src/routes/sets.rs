@@ -5,8 +5,9 @@ use axum::Router;
 use serde::{Deserialize, Serialize};
 use sqlx::types::Json as Jsonb;
 
+use crate::error::JsonError;
 use crate::snowflake::Snowflake;
-use crate::{AppState, Error, Result};
+use crate::{AppState, Result};
 
 use super::emotes::Emote;
 
@@ -90,7 +91,7 @@ async fn get_set(
 	)
 	.fetch_optional(&state.pool)
 	.await?
-	.ok_or(Error::NotFound("Unknown emote set.".to_string()))?;
+	.ok_or(JsonError::UnknownEmoteSet)?;
 
 	Ok(Json(set))
 }
@@ -122,7 +123,7 @@ async fn update_set(
 	)
 	.fetch_optional(&state.pool)
 	.await?
-	.ok_or(Error::NotFound("Unknown emote set.".to_string()))?;
+	.ok_or(JsonError::UnknownEmoteSet)?;
 
 	Ok(Json(set))
 }
@@ -147,6 +148,6 @@ async fn delete_set(State(state): State<AppState>, Path(id): Path<String>) -> Re
 	if deleted.unwrap_or_default() {
 		Ok(StatusCode::NO_CONTENT)
 	} else {
-		Err(Error::NotFound("Unknown emote set.".to_string()))
+		Err(JsonError::UnknownEmoteSet.into())
 	}
 }
