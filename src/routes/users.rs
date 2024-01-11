@@ -11,14 +11,14 @@ use crate::{AppState, Error, Result};
 
 pub fn router() -> Router<AppState> {
 	Router::new()
-		.route("/users/$me", get(get_current_user))
-		.route("/users/$me/editors/:id", put(add_user_editor))
-		.route("/users/$me/editors/:id", delete(remove_user_editor))
+		.route("/users/@me", get(get_current_user))
+		.route("/users/@me/editors/:id", put(add_user_editor))
+		.route("/users/@me/editors/:id", delete(remove_user_editor))
 		.route("/users/:id", get(get_user))
 		.route("/users/:id/editors", get(get_user_editors))
 		.route("/users/:id/emotes", get(get_user_emotes))
 		.route("/users/:id/sets", get(get_user_sets))
-		.route("/users/:id/sets/$channel", get(get_user_channel_set))
+		.route("/users/:id/sets/@channel", get(get_user_channel_set))
 }
 
 #[derive(Debug, Deserialize, Serialize, sqlx::Type)]
