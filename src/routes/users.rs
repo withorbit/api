@@ -9,11 +9,12 @@ use crate::{AppState, Error, Result};
 
 pub fn router() -> Router<AppState> {
 	Router::new()
-		.route("/users/me", get(get_current_user))
+		.route("/users/$me", get(get_current_user))
 		.route("/users/:id", get(get_user))
 		.route("/users/:id/editors", get(get_user_editors))
 		.route("/users/:id/emotes", get(get_user_emotes))
 		.route("/users/:id/sets", get(get_user_sets))
+		.route("/users/:id/sets/$channel", get(get_user_channel_set))
 }
 
 #[derive(Debug, Deserialize, Serialize, sqlx::Type)]
@@ -37,6 +38,7 @@ pub struct User {
 	pub roles: Vec<Role>,
 	pub badge_url: Option<String>,
 	pub color_id: Option<String>,
+	pub channel_set_id: String,
 }
 
 async fn get_current_user() {
@@ -54,7 +56,8 @@ async fn get_user(State(state): State<AppState>, Path(id): Path<String>) -> Resu
 				avatar_url,
 				roles AS "roles: Vec<Role>",
 				badge_url,
-				color_id
+				color_id,
+				channel_set_id
 			FROM users
 			WHERE id = $1
 		"#,
@@ -178,6 +181,27 @@ async fn get_user_sets(
 	.await?;
 
 	Ok(Json(sets))
+}
+
+async fn get_user_channel_set(
+	State(state): State<AppState>,
+	Path(id): Path<String>,
+) -> Result<Json<UserEmoteSet>> {
+	let set = sqlx::query_as!(
+		UserEmoteSet,
+		"
+			SELECT sets.*
+			FROM
+				users
+				JOIN sets ON users.channel_set_id = sets.id
+			WHERE users.id = $1
+		",
+		id
+	)
+	.fetch_one(&state.pool)
+	.await?;
+
+	Ok(Json(set))
 }
 
 async fn user_exists(pool: &Pool<Postgres>, id: &String) -> bool {
