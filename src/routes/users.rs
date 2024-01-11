@@ -2,6 +2,7 @@ use axum::extract::{Json, Path, State};
 use axum::routing::get;
 use axum::Router;
 use serde::{Deserialize, Serialize};
+use sqlx::types::Json as Jsonb;
 use sqlx::{Pool, Postgres};
 
 use crate::{AppState, Error, Result};
@@ -10,6 +11,7 @@ pub fn router() -> Router<AppState> {
 	Router::new()
 		.route("/users/me", get(get_current_user))
 		.route("/users/:id", get(get_user))
+		.route("/users/:id/editors", get(get_user_editors))
 		.route("/users/:id/emotes", get(get_user_emotes))
 		.route("/users/:id/sets", get(get_user_sets))
 }
@@ -63,6 +65,43 @@ async fn get_user(State(state): State<AppState>, Path(id): Path<String>) -> Resu
 	.ok_or(Error::NotFound("Unknown user.".to_string()))?;
 
 	Ok(Json(user))
+}
+
+async fn get_user_editors(
+	State(state): State<AppState>,
+	Path(id): Path<String>,
+) -> Result<Json<Vec<User>>> {
+	let Jsonb(editors) = sqlx::query_scalar!(
+		r#"
+			SELECT
+				user_editors.coalesce AS "editors!: Jsonb<Vec<User>>"
+			FROM
+				users
+				LEFT JOIN LATERAL (
+					SELECT COALESCE(jsonb_agg(data), '[]')
+					FROM (
+						SELECT get_editors.data
+						FROM
+							users_to_editors AS m2m
+							LEFT JOIN LATERAL (
+								SELECT to_jsonb(editor) AS data
+								FROM (
+									SELECT users.*
+									FROM users
+									WHERE m2m.editor_id = users.id
+								) AS editor
+							) AS get_editors ON true
+						WHERE m2m.user_id = users.id
+					) AS _
+				) AS user_editors ON true
+			WHERE users.id = $1
+		"#,
+		id
+	)
+	.fetch_one(&state.pool)
+	.await?;
+
+	Ok(Json(editors))
 }
 
 #[derive(Deserialize, Serialize)]
