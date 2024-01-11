@@ -1,11 +1,11 @@
 use axum::extract::{Json, Path, State};
 use axum::http::StatusCode;
-use axum::routing::{delete, get, patch, post};
+use axum::routing::{delete, get, patch, post, put};
 use axum::Router;
 use serde::{Deserialize, Serialize};
 use sqlx::types::Json as Jsonb;
 
-use crate::error::JsonError;
+use crate::error::{JsonError, ResultExt};
 use crate::snowflake::Snowflake;
 use crate::{AppState, Result};
 
@@ -17,6 +17,8 @@ pub fn router() -> Router<AppState> {
 		.route("/sets/:id", get(get_set))
 		.route("/sets/:id", patch(update_set))
 		.route("/sets/:id", delete(delete_set))
+		.route("/sets/:id/emotes/:emoteId", put(add_set_emote))
+		.route("/sets/:id/emotes/:emoteId", delete(remove_set_emote))
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -138,16 +140,77 @@ async fn delete_set(State(state): State<AppState>, Path(id): Path<String>) -> Re
 			)
 			SELECT EXISTS (
 				SELECT 1 FROM returned
-			)
+			) AS "exists!"
 		"#,
 		id
 	)
 	.fetch_one(&state.pool)
 	.await?;
 
-	if deleted.unwrap_or_default() {
+	if deleted {
 		Ok(StatusCode::NO_CONTENT)
 	} else {
 		Err(JsonError::UnknownEmoteSet.into())
+	}
+}
+
+async fn add_set_emote(
+	State(state): State<AppState>,
+	Path((set_id, emote_id)): Path<(String, String)>,
+) -> Result<StatusCode> {
+	sqlx::query!(
+		"INSERT INTO emotes_to_sets (set_id, emote_id)
+		VALUES ($1, $2)
+		ON CONFLICT DO NOTHING",
+		set_id,
+		emote_id
+	)
+	.execute(&state.pool)
+	.await
+	.on_constraint(
+		"emotes_to_sets_set_id_fkey",
+		JsonError::UnknownEmoteSet.into(),
+	)
+	.on_constraint(
+		"emotes_to_sets_emote_id_fkey",
+		JsonError::UnknownEmote.into(),
+	)?;
+
+	Ok(StatusCode::NO_CONTENT)
+}
+
+async fn remove_set_emote(
+	State(state): State<AppState>,
+	Path((set_id, emote_id)): Path<(String, String)>,
+) -> Result<StatusCode> {
+	let exists = sqlx::query_scalar!("SELECT id FROM sets WHERE id = $1", set_id)
+		.fetch_optional(&state.pool)
+		.await?;
+
+	if exists.is_none() {
+		return Err(JsonError::UnknownEmoteSet.into());
+	}
+
+	let deleted = sqlx::query_scalar!(
+		r#"
+			WITH returned AS (
+				DELETE FROM emotes_to_sets
+				WHERE set_id = $1 AND emote_id = $2
+				RETURNING 1
+			)
+			SELECT EXISTS (
+				SELECT 1 FROM returned
+			) AS "exists!"
+		"#,
+		set_id,
+		emote_id
+	)
+	.fetch_one(&state.pool)
+	.await?;
+
+	if deleted {
+		Ok(StatusCode::NO_CONTENT)
+	} else {
+		Err(JsonError::UnknownEmote.into())
 	}
 }
