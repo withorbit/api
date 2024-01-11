@@ -113,6 +113,10 @@ async fn add_user_editor(
 	State(state): State<AppState>,
 	Path((user_id, editor_id)): Path<(String, String)>,
 ) -> Result<StatusCode> {
+	if !user_exists(&state.pool, &user_id).await || !user_exists(&state.pool, &editor_id).await {
+		return Err(Error::BadRequest("Unknown user.".to_string()));
+	}
+
 	if user_id == editor_id {
 		return Err(Error::BadRequest(
 			"User cannot add themselves as an editor.".to_string(),
@@ -142,16 +146,28 @@ async fn remove_user_editor(
 		));
 	}
 
-	sqlx::query!(
-		"DELETE FROM users_to_editors
-		WHERE user_id = $1 AND editor_id = $2",
+	let deleted = sqlx::query_scalar!(
+		r#"
+			WITH returned AS (
+				DELETE FROM users_to_editors
+				WHERE user_id = $1 AND editor_id = $2
+				RETURNING 1
+			)
+			SELECT EXISTS (
+				SELECT 1 FROM returned
+			) AS "exists!"
+		"#,
 		user_id,
 		editor_id
 	)
-	.execute(&state.pool)
+	.fetch_one(&state.pool)
 	.await?;
 
-	Ok(StatusCode::NO_CONTENT)
+	if deleted {
+		Ok(StatusCode::NO_CONTENT)
+	} else {
+		Err(Error::NotFound("Unknown user.".to_string()))
+	}
 }
 
 #[derive(Deserialize, Serialize)]
