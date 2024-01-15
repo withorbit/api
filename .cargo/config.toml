@@ -1,0 +1,3 @@
+[alias]
+d = "shuttle run"
+w = ["watch", "-qcx", "shuttle run"]
