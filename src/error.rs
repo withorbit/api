@@ -7,14 +7,19 @@ use serde_json::json;
 pub enum Error {
 	#[error("{0}")]
 	BadRequest(String),
+
 	#[error("{0}")]
 	NotFound(String),
+
 	#[error("422 Unprocessable Entity")]
 	UnprocessableEntity,
+
 	#[error("500 Internal Server Error (CDN)")]
 	Cdn,
+
 	#[error("500 Internal Server Error (Database)")]
 	Database(#[from] sqlx::Error),
+
 	#[error("500 Internal Server Error (JSON)")]
 	Json(#[from] serde_json::Error),
 }
@@ -52,9 +57,9 @@ impl IntoResponse for Error {
 
 impl From<JsonError> for Error {
 	fn from(value: JsonError) -> Self {
-		let (code, message) = value.to_pair();
+		let message = value.to_string();
 
-		match code {
+		match value.status_code() {
 			400 => Error::BadRequest(message),
 			404 => Error::NotFound(message),
 			_ => unreachable!(),
@@ -62,28 +67,29 @@ impl From<JsonError> for Error {
 	}
 }
 
+#[derive(thiserror::Error, Debug)]
 pub enum JsonError {
+	#[error("Unknown user.")]
 	UnknownUser,
+
+	#[error("Unknown emote.")]
 	UnknownEmote,
+
+	#[error("Unknown emote set.")]
 	UnknownEmoteSet,
+
+	#[error("User cannot add themselves as an editor to their own channel.")]
 	UserCannotAddSelf,
 }
 
 impl JsonError {
-	fn to_pair(self) -> (u32, String) {
+	fn status_code(self) -> u32 {
 		use self::JsonError::*;
 
-		let pair = match self {
-			UnknownUser => (404, "Unknown user."),
-			UnknownEmote => (404, "Unknown emote."),
-			UnknownEmoteSet => (404, "Unknown emote set."),
-			UserCannotAddSelf => (
-				400,
-				"User cannot add themselves as an editor to their own channel.",
-			),
-		};
-
-		(pair.0, pair.1.to_string())
+		match self {
+			UserCannotAddSelf => 400,
+			_ => 404,
+		}
 	}
 }
 
