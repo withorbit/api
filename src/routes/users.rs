@@ -6,14 +6,19 @@ use serde::{Deserialize, Serialize};
 use sqlx::postgres::{PgHasArrayType, PgTypeInfo};
 use sqlx::{Pool, Postgres};
 
+use crate::auth::{self, AuthUser};
 use crate::error::{JsonError, ResultExt};
 use crate::{AppState, Error, Result};
 
-pub fn router() -> Router<AppState> {
+pub fn router(state: &AppState) -> Router<AppState> {
 	Router::new()
 		.route("/users/@me", get(get_current_user))
 		.route("/users/@me/editors/:id", put(add_user_editor))
 		.route("/users/@me/editors/:id", delete(remove_user_editor))
+		.route_layer(axum::middleware::from_fn_with_state(
+			state.clone(),
+			auth::middleware,
+		))
 		.route("/users/:id", get(get_user))
 		.route("/users/:id/editors", get(get_user_editors))
 		.route("/users/:id/emotes", get(get_user_emotes))
@@ -51,8 +56,8 @@ pub struct User {
 	pub channel_set_id: String,
 }
 
-async fn get_current_user() {
-	todo!()
+async fn get_current_user(user: AuthUser) -> Result<Json<User>> {
+	Ok(Json(user))
 }
 
 async fn get_user(State(state): State<AppState>, Path(id): Path<String>) -> Result<Json<User>> {
@@ -112,13 +117,14 @@ async fn get_user_editors(
 
 async fn add_user_editor(
 	State(state): State<AppState>,
+	user: AuthUser,
 	Path(id): Path<String>,
 ) -> Result<StatusCode> {
 	sqlx::query!(
 		"INSERT INTO users_to_editors (user_id, editor_id)
 		VALUES ($1, $2)
 		ON CONFLICT DO NOTHING",
-		"!!TODO!!",
+		user.id,
 		id
 	)
 	.execute(&state.pool)
@@ -130,6 +136,7 @@ async fn add_user_editor(
 
 async fn remove_user_editor(
 	State(state): State<AppState>,
+	user: AuthUser,
 	Path(id): Path<String>,
 ) -> Result<StatusCode> {
 	let deleted = sqlx::query_scalar!(
@@ -143,7 +150,7 @@ async fn remove_user_editor(
 				SELECT 1 FROM returned
 			) AS "exists!"
 		"#,
-		"!!TODO!!",
+		user.id,
 		id
 	)
 	.fetch_one(&state.pool)

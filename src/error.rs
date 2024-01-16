@@ -11,6 +11,9 @@ pub enum Error {
 	#[error("{0}")]
 	NotFound(String),
 
+	#[error("{0}")]
+	Unauthorized(String),
+
 	#[error("422 Unprocessable Entity")]
 	UnprocessableEntity,
 
@@ -22,6 +25,9 @@ pub enum Error {
 
 	#[error("500 Internal Server Error (JSON)")]
 	Json(#[from] serde_json::Error),
+
+	#[error("500 Internal Server Error")]
+	Generic,
 }
 
 impl Error {
@@ -31,8 +37,9 @@ impl Error {
 		match self {
 			BadRequest(_) => StatusCode::BAD_REQUEST,
 			NotFound(_) => StatusCode::NOT_FOUND,
+			Unauthorized(_) => StatusCode::UNAUTHORIZED,
 			UnprocessableEntity => StatusCode::UNPROCESSABLE_ENTITY,
-			Cdn | Database(_) | Json(_) => StatusCode::INTERNAL_SERVER_ERROR,
+			Cdn | Database(_) | Json(_) | Generic => StatusCode::INTERNAL_SERVER_ERROR,
 		}
 	}
 }
@@ -57,11 +64,14 @@ impl IntoResponse for Error {
 
 impl From<JsonError> for Error {
 	fn from(value: JsonError) -> Self {
+		use self::Error::*;
+
 		let message = value.to_string();
 
 		match value.status_code() {
-			400 => Error::BadRequest(message),
-			404 => Error::NotFound(message),
+			400 => BadRequest(message),
+			401 => Unauthorized(message),
+			404 => NotFound(message),
 			_ => unreachable!(),
 		}
 	}
@@ -80,6 +90,12 @@ pub enum JsonError {
 
 	#[error("User cannot add themselves as an editor to their own channel.")]
 	UserCannotAddSelf,
+
+	#[error("Unauthorized.")]
+	Unauthorized,
+
+	#[error("Invalid bearer token.")]
+	InvalidToken,
 }
 
 impl JsonError {
@@ -88,6 +104,7 @@ impl JsonError {
 
 		match self {
 			UserCannotAddSelf => 400,
+			Unauthorized | InvalidToken => 401,
 			_ => 404,
 		}
 	}

@@ -1,3 +1,4 @@
+mod auth;
 mod error;
 mod routes;
 mod snowflake;
@@ -36,6 +37,7 @@ async fn main(#[shuttle_secrets::Secrets] secrets: SecretStore) -> shuttle_axum:
 	let database_url = get_secret(&secrets, "DATABASE_URL");
 	let s3_config = aws_config::load_from_env().await;
 
+	// todo: use tokio-postgres
 	let pool = PgPoolOptions::new()
 		.max_connections(50)
 		.connect(&database_url)
@@ -48,7 +50,7 @@ async fn main(#[shuttle_secrets::Secrets] secrets: SecretStore) -> shuttle_axum:
 	};
 
 	let router = Router::new()
-		.nest("/api", routes::router())
+		.nest("/api", routes::router(&app_state))
 		.layer(
 			ServiceBuilder::new()
 				.layer(

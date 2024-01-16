@@ -6,18 +6,23 @@ use axum::Router;
 use serde::{Deserialize, Serialize};
 use sqlx::types::Json as Jsonb;
 
+use crate::auth::{self, AuthUser};
 use crate::error::{Error, JsonError};
 use crate::snowflake::Snowflake;
 use crate::{AppState, Result};
 
 use super::users::User;
 
-pub fn router() -> Router<AppState> {
+pub fn router(state: &AppState) -> Router<AppState> {
 	Router::new()
 		.route("/emotes", post(create_emote))
-		.route("/emotes/:id", get(get_emote))
 		.route("/emotes/:id", patch(update_emote))
 		.route("/emotes/:id", delete(delete_emote))
+		.route_layer(axum::middleware::from_fn_with_state(
+			state.clone(),
+			auth::middleware,
+		))
+		.route("/emotes/:id", get(get_emote))
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -67,12 +72,9 @@ pub struct CreateEmote {
 
 async fn create_emote(
 	State(state): State<AppState>,
+	user: AuthUser,
 	Json(body): Json<CreateEmote>,
 ) -> Result<(StatusCode, Json<EmoteWithUser>)> {
-	// todo: handle auth
-
-	tracing::debug!(?body);
-
 	let emote = sqlx::query_as!(
 		EmoteWithUser,
 		r#"
@@ -100,7 +102,7 @@ async fn create_emote(
 		body.animated,
 		body.modifier,
 		body.nsfw,
-		"!!TODO!!"
+		user.id
 	)
 	.fetch_one(&state.pool)
 	.await?;

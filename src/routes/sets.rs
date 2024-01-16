@@ -5,20 +5,25 @@ use axum::Router;
 use serde::{Deserialize, Serialize};
 use sqlx::types::Json as Jsonb;
 
+use crate::auth::{self, AuthUser};
 use crate::error::{JsonError, ResultExt};
 use crate::snowflake::Snowflake;
 use crate::{AppState, Result};
 
 use super::emotes::Emote;
 
-pub fn router() -> Router<AppState> {
+pub fn router(state: &AppState) -> Router<AppState> {
 	Router::new()
 		.route("/sets", post(create_set))
-		.route("/sets/:id", get(get_set))
 		.route("/sets/:id", patch(update_set))
 		.route("/sets/:id", delete(delete_set))
 		.route("/sets/:id/emotes/:emoteId", put(add_set_emote))
 		.route("/sets/:id/emotes/:emoteId", delete(remove_set_emote))
+		.route_layer(axum::middleware::from_fn_with_state(
+			state.clone(),
+			auth::middleware,
+		))
+		.route("/sets/:id", get(get_set))
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -48,10 +53,9 @@ struct CreateEmoteSet {
 
 async fn create_set(
 	State(state): State<AppState>,
+	user: AuthUser,
 	Json(body): Json<CreateEmoteSet>,
 ) -> Result<Json<EmoteSet>> {
-	// todo: handle auth
-
 	let set = sqlx::query_as!(
 		EmoteSet,
 		r#"
@@ -62,7 +66,7 @@ async fn create_set(
 		Snowflake::new().0,
 		body.name,
 		body.capacity,
-		"!!TODO!!"
+		user.id
 	)
 	.fetch_one(&state.pool)
 	.await?;
@@ -130,19 +134,24 @@ async fn update_set(
 	Ok(Json(set))
 }
 
-async fn delete_set(State(state): State<AppState>, Path(id): Path<String>) -> Result<StatusCode> {
+async fn delete_set(
+	State(state): State<AppState>,
+	user: AuthUser,
+	Path(id): Path<String>,
+) -> Result<StatusCode> {
 	let deleted = sqlx::query_scalar!(
 		r#"
 			WITH returned AS (
 				DELETE FROM sets
-				WHERE id = $1
+				WHERE id = $1 AND user_id = $2
 				RETURNING 1
 			)
 			SELECT EXISTS (
 				SELECT 1 FROM returned
 			) AS "exists!"
 		"#,
-		id
+		id,
+		user.id
 	)
 	.fetch_one(&state.pool)
 	.await?;
