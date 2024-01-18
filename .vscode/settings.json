@@ -2,5 +2,6 @@
 	"files.associations": {
 		"justfile": "makefile"
 	},
-	"markdown.validate.enabled": false
+	"markdown.validate.enabled": false,
+	"SQL-Formatter-VSCode.dialect": "postgresql"
 }

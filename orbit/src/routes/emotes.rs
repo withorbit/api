@@ -3,12 +3,13 @@ use axum::extract::{Json, Path, State};
 use axum::http::StatusCode;
 use axum::routing::{delete, get, patch, post};
 use axum::Router;
+use orbit_derive::FromRow;
+use orbit_types::snowflake::Snowflake;
 use serde::{Deserialize, Serialize};
-use sqlx::types::Json as Jsonb;
 
 use crate::auth::{self, AuthUser};
+use crate::db::Conn;
 use crate::error::{Error, JsonError};
-use crate::snowflake::Snowflake;
 use crate::{AppState, Result};
 
 use super::users::User;
@@ -25,7 +26,7 @@ pub fn router(state: &AppState) -> Router<AppState> {
 		.route("/emotes/:id", get(get_emote))
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct Emote {
 	pub id: String,
 	pub name: String,
@@ -40,7 +41,7 @@ pub struct Emote {
 	pub user_id: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct EmoteWithUser {
 	pub id: String,
 	pub name: String,
@@ -52,10 +53,7 @@ pub struct EmoteWithUser {
 	pub animated: bool,
 	pub modifier: bool,
 	pub nsfw: bool,
-
-	#[serde(skip_serializing)]
-	pub user_id: String,
-	pub user: Jsonb<User>,
+	pub user: User,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -71,13 +69,14 @@ pub struct CreateEmote {
 }
 
 async fn create_emote(
-	State(state): State<AppState>,
+	State(_): State<AppState>,
+	Conn(conn): Conn,
 	user: AuthUser,
 	Json(body): Json<CreateEmote>,
 ) -> Result<(StatusCode, Json<EmoteWithUser>)> {
-	let emote = sqlx::query_as!(
-		EmoteWithUser,
-		r#"
+	let emote = conn
+		.query_one(
+			r#"
 			INSERT INTO
 				emotes (
 					id, name, tags, width, height, public,
@@ -88,48 +87,51 @@ async fn create_emote(
 			RETURNING
 				*,
 				(
-					SELECT to_jsonb(users.*)
+					SELECT to_jsonb(users.*) AS "user"
 					FROM users
 					WHERE users.id = $10
-				) AS "user!: _"
-		"#,
-		Snowflake::new().0,
-		body.name,
-		&body.tags,
-		body.width,
-		body.height,
-		body.public,
-		body.animated,
-		body.modifier,
-		body.nsfw,
-		user.id
-	)
-	.fetch_one(&state.pool)
-	.await?;
+				)
+			"#,
+			&[
+				&Snowflake::new().0,
+				&body.name,
+				&body.tags,
+				&body.width,
+				&body.height,
+				&body.public,
+				&body.animated,
+				&body.modifier,
+				&body.nsfw,
+				&user.id,
+			],
+		)
+		.await?
+		.into();
 
 	Ok((StatusCode::CREATED, Json(emote)))
 }
 
 async fn get_emote(
-	State(state): State<AppState>,
+	State(_): State<AppState>,
+	Conn(conn): Conn,
 	Path(id): Path<String>,
 ) -> Result<Json<EmoteWithUser>> {
-	let emote = sqlx::query_as!(
-		EmoteWithUser,
-		r#"
+	let emote = conn
+		.query_opt(
+			r#"
 			SELECT
 				emotes.*,
-				to_jsonb(users.*) AS "user!: _"
+				to_jsonb(users.*) AS "user"
 			FROM
 				emotes
 				LEFT JOIN users ON emotes.user_id = users.id
 			WHERE emotes.id = $1
-		"#,
-		id
-	)
-	.fetch_optional(&state.pool)
-	.await?
-	.ok_or(JsonError::UnknownEmote)?;
+			"#,
+			&[&id],
+		)
+		.await?
+		.ok_or(JsonError::UnknownEmote)?
+		.into();
 
 	Ok(Json(emote))
 }
@@ -141,34 +143,38 @@ pub struct UpdateEmote {
 }
 
 async fn update_emote(
-	State(state): State<AppState>,
+	State(_): State<AppState>,
+	Conn(conn): Conn,
 	Path(id): Path<String>,
 	Json(body): Json<UpdateEmote>,
 ) -> Result<Json<Emote>> {
-	let emote = sqlx::query_as!(
-		Emote,
-		r#"
+	let emote = conn
+		.query_opt(
+			"
 			UPDATE emotes
 			SET
 				approved = $1,
 				nsfw = $2
 			WHERE id = $3
 			RETURNING *
-		"#,
-		body.approved,
-		body.nsfw,
-		id
-	)
-	.fetch_optional(&state.pool)
-	.await?
-	.ok_or(JsonError::UnknownEmote)?;
+			",
+			&[&body.approved, &body.nsfw, &id],
+		)
+		.await?
+		.ok_or(JsonError::UnknownEmote)?
+		.into();
 
 	Ok(Json(emote))
 }
 
-async fn delete_emote(State(state): State<AppState>, Path(id): Path<String>) -> Result<StatusCode> {
-	let deleted = sqlx::query_scalar!(
-		r#"
+async fn delete_emote(
+	State(state): State<AppState>,
+	Conn(conn): Conn,
+	Path(id): Path<String>,
+) -> Result<StatusCode> {
+	let deleted: bool = conn
+		.query_one(
+			"
 			WITH returned AS (
 				DELETE FROM emotes
 				WHERE id = $1
@@ -177,11 +183,11 @@ async fn delete_emote(State(state): State<AppState>, Path(id): Path<String>) -> 
 			SELECT EXISTS (
 				SELECT 1 FROM returned
 			)
-		"#,
-		id
-	)
-	.fetch_one(&state.pool)
-	.await?;
+			",
+			&[&id],
+		)
+		.await?
+		.get(0);
 
 	let mut to_delete: Vec<ObjectIdentifier> = vec![];
 	let response = state
@@ -217,7 +223,7 @@ async fn delete_emote(State(state): State<AppState>, Path(id): Path<String>) -> 
 		.await
 		.map_err(|_| Error::Cdn)?;
 
-	if deleted.unwrap_or_default() {
+	if deleted {
 		Ok(StatusCode::NO_CONTENT)
 	} else {
 		Err(JsonError::UnknownEmote.into())

@@ -21,7 +21,7 @@ pub enum Error {
 	Cdn,
 
 	#[error("500 Internal Server Error (Database)")]
-	Database(#[from] sqlx::Error),
+	Database(#[from] tokio_postgres::Error),
 
 	#[error("500 Internal Server Error (JSON)")]
 	Json(#[from] serde_json::Error),
@@ -120,7 +120,14 @@ where
 {
 	fn on_constraint(self, name: &str, e: Error) -> Result<T, Error> {
 		self.map_err(|err| match err.into() {
-			Error::Database(sqlx::Error::Database(err)) if err.constraint() == Some(name) => e,
+			Error::Database(err)
+				if matches!(
+					err.as_db_error().and_then(|e| e.constraint()),
+					Some(constraint) if constraint == name
+				) =>
+			{
+				e
+			}
 			err => err,
 		})
 	}

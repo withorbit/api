@@ -2,15 +2,14 @@ use axum::extract::{Json, Path, State};
 use axum::http::StatusCode;
 use axum::routing::{delete, get, patch, post, put};
 use axum::Router;
+use orbit_derive::FromRow;
+use orbit_types::snowflake::Snowflake;
 use serde::{Deserialize, Serialize};
-use sqlx::types::Json as Jsonb;
 
 use crate::auth::{self, AuthUser};
+use crate::db::Conn;
 use crate::error::{JsonError, ResultExt};
-use crate::snowflake::Snowflake;
 use crate::{AppState, Result};
-
-use super::emotes::Emote;
 
 pub fn router(state: &AppState) -> Router<AppState> {
 	Router::new()
@@ -26,7 +25,7 @@ pub fn router(state: &AppState) -> Router<AppState> {
 		.route("/sets/:id", get(get_set))
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct EmoteSet {
 	pub id: String,
 	pub name: String,
@@ -35,14 +34,14 @@ pub struct EmoteSet {
 	pub parent_id: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, FromRow)]
 pub struct EmoteSetWithEmotes {
 	pub id: String,
 	pub name: String,
 	pub capacity: i32,
 	pub user_id: String,
 	pub parent_id: Option<String>,
-	pub emotes: Jsonb<Vec<Emote>>,
+	pub emotes: serde_json::Value,
 }
 
 #[derive(Debug, Deserialize)]
@@ -52,52 +51,51 @@ struct CreateEmoteSet {
 }
 
 async fn create_set(
-	State(state): State<AppState>,
+	State(_): State<AppState>,
+	Conn(conn): Conn,
 	user: AuthUser,
 	Json(body): Json<CreateEmoteSet>,
 ) -> Result<Json<EmoteSet>> {
-	let set = sqlx::query_as!(
-		EmoteSet,
-		r#"
+	let set = conn
+		.query_one(
+			"
 			INSERT INTO sets (id, name, capacity, user_id)
 			VALUES ($1, $2, $3, $4)
 			RETURNING *
-		"#,
-		Snowflake::new().0,
-		body.name,
-		body.capacity,
-		user.id
-	)
-	.fetch_one(&state.pool)
-	.await?;
+			",
+			&[&Snowflake::new().0, &body.name, &body.capacity, &user.id],
+		)
+		.await?
+		.into();
 
 	Ok(Json(set))
 }
 
 async fn get_set(
-	State(state): State<AppState>,
+	State(_): State<AppState>,
+	Conn(conn): Conn,
 	Path(id): Path<String>,
 ) -> Result<Json<EmoteSetWithEmotes>> {
-	let set = sqlx::query_as!(
-		EmoteSetWithEmotes,
-		r#"
+	let set = conn
+		.query_opt(
+			"
 			SELECT
 				sets.*,
 				COALESCE(
 					jsonb_agg(emotes.*) FILTER (WHERE emotes.id IS NOT NULL), '[]'
-				) AS "emotes!: _"
+				) AS emotes
 			FROM
 				sets
 				LEFT JOIN emotes_to_sets AS m2m ON sets.id = m2m.set_id
 				LEFT JOIN emotes ON m2m.emote_id = emotes.id
 			WHERE sets.id = $1
 			GROUP BY sets.id
-		"#,
-		id
-	)
-	.fetch_optional(&state.pool)
-	.await?
-	.ok_or(JsonError::UnknownEmoteSet)?;
+			",
+			&[&id],
+		)
+		.await?
+		.ok_or(JsonError::UnknownEmoteSet)?
+		.into();
 
 	Ok(Json(set))
 }
@@ -109,38 +107,39 @@ struct UpdateEmoteSet {
 }
 
 async fn update_set(
-	State(state): State<AppState>,
+	State(_): State<AppState>,
+	Conn(conn): Conn,
 	Path(id): Path<String>,
 	Json(body): Json<UpdateEmoteSet>,
 ) -> Result<Json<EmoteSet>> {
-	let set = sqlx::query_as!(
-		EmoteSet,
-		r#"
+	let set = conn
+		.query_opt(
+			"
 			UPDATE sets
 			SET
 				name = $1,
 				capacity = $2
 			WHERE id = $3
 			RETURNING *
-		"#,
-		body.name,
-		body.capacity,
-		id
-	)
-	.fetch_optional(&state.pool)
-	.await?
-	.ok_or(JsonError::UnknownEmoteSet)?;
+			",
+			&[&body.name, &body.capacity, &id],
+		)
+		.await?
+		.ok_or(JsonError::UnknownEmoteSet)?
+		.into();
 
 	Ok(Json(set))
 }
 
 async fn delete_set(
-	State(state): State<AppState>,
+	State(_): State<AppState>,
+	Conn(conn): Conn,
 	user: AuthUser,
 	Path(id): Path<String>,
 ) -> Result<StatusCode> {
-	let deleted = sqlx::query_scalar!(
-		r#"
+	let deleted = conn
+		.query_one(
+			"
 			WITH returned AS (
 				DELETE FROM sets
 				WHERE id = $1 AND user_id = $2
@@ -148,13 +147,12 @@ async fn delete_set(
 			)
 			SELECT EXISTS (
 				SELECT 1 FROM returned
-			) AS "exists!"
-		"#,
-		id,
-		user.id
-	)
-	.fetch_one(&state.pool)
-	.await?;
+			)
+			",
+			&[&id, &user.id],
+		)
+		.await?
+		.get(0);
 
 	if deleted {
 		Ok(StatusCode::NO_CONTENT)
@@ -164,17 +162,18 @@ async fn delete_set(
 }
 
 async fn add_set_emote(
-	State(state): State<AppState>,
+	State(_): State<AppState>,
+	Conn(conn): Conn,
 	Path((set_id, emote_id)): Path<(String, String)>,
 ) -> Result<StatusCode> {
-	sqlx::query!(
-		"INSERT INTO emotes_to_sets (set_id, emote_id)
+	conn.execute(
+		"
+		INSERT INTO emotes_to_sets (set_id, emote_id)
 		VALUES ($1, $2)
-		ON CONFLICT DO NOTHING",
-		set_id,
-		emote_id
+		ON CONFLICT DO NOTHING
+		",
+		&[&set_id, &emote_id],
 	)
-	.execute(&state.pool)
 	.await
 	.on_constraint(
 		"emotes_to_sets_set_id_fkey",
@@ -189,19 +188,21 @@ async fn add_set_emote(
 }
 
 async fn remove_set_emote(
-	State(state): State<AppState>,
+	State(_): State<AppState>,
+	Conn(conn): Conn,
 	Path((set_id, emote_id)): Path<(String, String)>,
 ) -> Result<StatusCode> {
-	let exists = sqlx::query_scalar!("SELECT id FROM sets WHERE id = $1", set_id)
-		.fetch_optional(&state.pool)
+	let exists = conn
+		.query_opt("SELECT id FROM sets WHERE id = $1", &[&set_id])
 		.await?;
 
 	if exists.is_none() {
 		return Err(JsonError::UnknownEmoteSet.into());
 	}
 
-	let deleted = sqlx::query_scalar!(
-		r#"
+	let deleted = conn
+		.query_one(
+			"
 			WITH returned AS (
 				DELETE FROM emotes_to_sets
 				WHERE set_id = $1 AND emote_id = $2
@@ -209,13 +210,12 @@ async fn remove_set_emote(
 			)
 			SELECT EXISTS (
 				SELECT 1 FROM returned
-			) AS "exists!"
-		"#,
-		set_id,
-		emote_id
-	)
-	.fetch_one(&state.pool)
-	.await?;
+			)
+			",
+			&[&set_id, &emote_id],
+		)
+		.await?
+		.get(0);
 
 	if deleted {
 		Ok(StatusCode::NO_CONTENT)

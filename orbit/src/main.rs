@@ -1,14 +1,13 @@
 mod auth;
+mod db;
 mod error;
 mod routes;
-mod snowflake;
 
 use std::time::Duration;
 
 use axum::http::Request;
 use axum::Router;
 use shuttle_secrets::SecretStore;
-use sqlx::postgres::PgPoolOptions;
 use tower::ServiceBuilder;
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
@@ -22,7 +21,7 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 #[derive(Clone)]
 struct AppState {
 	s3: aws_sdk_s3::Client,
-	pool: sqlx::PgPool,
+	pool: db::Pool,
 }
 
 #[shuttle_runtime::main]
@@ -30,7 +29,7 @@ async fn main(#[shuttle_secrets::Secrets] secrets: SecretStore) -> shuttle_axum:
 	dotenvy::dotenv().expect("Loading `.env` failed");
 
 	tracing_subscriber::registry()
-		.with(EnvFilter::new("api=info,tower_http=debug"))
+		.with(EnvFilter::new("orbit=debug,tower_http=debug"))
 		.with(fmt::layer())
 		.init();
 
@@ -38,11 +37,7 @@ async fn main(#[shuttle_secrets::Secrets] secrets: SecretStore) -> shuttle_axum:
 	let s3_config = aws_config::load_from_env().await;
 
 	// todo: use tokio-postgres
-	let pool = PgPoolOptions::new()
-		.max_connections(50)
-		.connect(&database_url)
-		.await
-		.expect("Failed to connect to database");
+	let pool = db::init_db(database_url).await;
 
 	let app_state = AppState {
 		s3: aws_sdk_s3::Client::new(&s3_config),
