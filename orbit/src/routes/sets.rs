@@ -1,4 +1,4 @@
-use axum::extract::{Json, Path, State};
+use axum::extract::{Json, Path};
 use axum::http::StatusCode;
 use axum::routing::{delete, get, patch, post, put};
 use axum::Router;
@@ -26,7 +26,6 @@ pub fn router(state: &AppState) -> Router<AppState> {
 }
 
 async fn create_set(
-	State(_): State<AppState>,
 	Conn(conn): Conn,
 	user: AuthUser,
 	Json(body): Json<CreateEmoteSet>,
@@ -46,11 +45,7 @@ async fn create_set(
 	Ok(Json(set))
 }
 
-async fn get_set(
-	State(_): State<AppState>,
-	Conn(conn): Conn,
-	Path(id): Path<String>,
-) -> Result<Json<EmoteSetWithEmotes>> {
+async fn get_set(Conn(conn): Conn, Path(id): Path<String>) -> Result<Json<EmoteSetWithEmotes>> {
 	let set = conn
 		.query_opt(
 			"
@@ -82,7 +77,6 @@ struct UpdateEmoteSet {
 }
 
 async fn update_set(
-	State(_): State<AppState>,
 	Conn(conn): Conn,
 	Path(id): Path<String>,
 	Json(body): Json<UpdateEmoteSet>,
@@ -107,7 +101,6 @@ async fn update_set(
 }
 
 async fn delete_set(
-	State(_): State<AppState>,
 	Conn(conn): Conn,
 	user: AuthUser,
 	Path(id): Path<String>,
@@ -137,7 +130,6 @@ async fn delete_set(
 }
 
 async fn add_set_emote(
-	State(_): State<AppState>,
 	Conn(conn): Conn,
 	Path((set_id, emote_id)): Path<(String, String)>,
 ) -> Result<StatusCode> {
@@ -163,7 +155,6 @@ async fn add_set_emote(
 }
 
 async fn remove_set_emote(
-	State(_): State<AppState>,
 	Conn(conn): Conn,
 	Path((set_id, emote_id)): Path<(String, String)>,
 ) -> Result<StatusCode> {

@@ -24,7 +24,6 @@ pub fn router(state: &AppState) -> Router<AppState> {
 }
 
 async fn create_emote(
-	State(_): State<AppState>,
 	Conn(conn): Conn,
 	user: AuthUser,
 	Json(body): Json<CreateEmote>,
@@ -66,11 +65,7 @@ async fn create_emote(
 	Ok((StatusCode::CREATED, Json(emote)))
 }
 
-async fn get_emote(
-	State(_): State<AppState>,
-	Conn(conn): Conn,
-	Path(id): Path<String>,
-) -> Result<Json<EmoteWithUser>> {
+async fn get_emote(Conn(conn): Conn, Path(id): Path<String>) -> Result<Json<EmoteWithUser>> {
 	let emote = conn
 		.query_opt(
 			r#"
@@ -92,7 +87,6 @@ async fn get_emote(
 }
 
 async fn update_emote(
-	State(_): State<AppState>,
 	Conn(conn): Conn,
 	Path(id): Path<String>,
 	Json(body): Json<UpdateEmote>,

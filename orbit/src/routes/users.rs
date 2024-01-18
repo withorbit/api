@@ -1,4 +1,4 @@
-use axum::extract::{Json, Path, State};
+use axum::extract::{Json, Path};
 use axum::http::StatusCode;
 use axum::routing::{delete, get, put};
 use axum::Router;
@@ -29,11 +29,7 @@ async fn get_current_user(user: AuthUser) -> Result<Json<User>> {
 	Ok(Json(user))
 }
 
-async fn get_user(
-	_: State<AppState>,
-	Conn(conn): Conn,
-	Path(id): Path<String>,
-) -> Result<Json<User>> {
+async fn get_user(Conn(conn): Conn, Path(id): Path<String>) -> Result<Json<User>> {
 	let user = conn
 		.query_opt("SELECT * FROM users WHERE id = $1", &[&id])
 		.await?
@@ -43,11 +39,7 @@ async fn get_user(
 	Ok(Json(user))
 }
 
-async fn get_user_editors(
-	_: State<AppState>,
-	Conn(conn): Conn,
-	Path(id): Path<String>,
-) -> Result<Json<Vec<User>>> {
+async fn get_user_editors(Conn(conn): Conn, Path(id): Path<String>) -> Result<Json<Vec<User>>> {
 	let editors = conn
 		.query(
 			"
@@ -70,7 +62,6 @@ async fn get_user_editors(
 }
 
 async fn add_user_editor(
-	_: State<AppState>,
 	Conn(conn): Conn,
 	user: AuthUser,
 	Path(id): Path<String>,
@@ -90,7 +81,6 @@ async fn add_user_editor(
 }
 
 async fn remove_user_editor(
-	_: State<AppState>,
 	Conn(conn): Conn,
 	user: AuthUser,
 	Path(id): Path<String>,
@@ -119,11 +109,7 @@ async fn remove_user_editor(
 	}
 }
 
-async fn get_user_emotes(
-	_: State<AppState>,
-	Conn(conn): Conn,
-	Path(id): Path<String>,
-) -> Result<Json<Vec<UserEmote>>> {
+async fn get_user_emotes(Conn(conn): Conn, Path(id): Path<String>) -> Result<Json<Vec<UserEmote>>> {
 	if !user_exists(&conn, &id).await {
 		return Err(Error::NotFound("Unknown user.".to_string()));
 	}
@@ -149,7 +135,6 @@ async fn get_user_emotes(
 }
 
 async fn get_user_sets(
-	_: State<AppState>,
 	Conn(conn): Conn,
 	Path(id): Path<String>,
 ) -> Result<Json<Vec<UserEmoteSet>>> {
@@ -178,7 +163,6 @@ async fn get_user_sets(
 }
 
 async fn get_user_channel_set(
-	_: State<AppState>,
 	Conn(conn): Conn,
 	Path(id): Path<String>,
 ) -> Result<Json<UserEmoteSet>> {
