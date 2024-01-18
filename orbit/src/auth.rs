@@ -7,7 +7,6 @@ use axum::RequestPartsExt;
 
 use crate::db::{Conn, Connection};
 use crate::error::{Error, JsonError};
-use crate::routes::users::User;
 use crate::{AppState, Result};
 
 pub async fn middleware(Conn(conn): Conn, req: Request, next: Next) -> Result<Response> {
@@ -16,7 +15,7 @@ pub async fn middleware(Conn(conn): Conn, req: Request, next: Next) -> Result<Re
 	Ok(next.run(req).await)
 }
 
-pub type AuthUser = User;
+pub type AuthUser = orbit_types::models::user::User;
 
 #[axum::async_trait]
 impl FromRequestParts<AppState> for AuthUser {

@@ -1824,6 +1824,13 @@ dependencies = [
 [[package]]
 name = "orbit_types"
 version = "0.1.0"
+dependencies = [
+ "orbit_derive",
+ "postgres-types",
+ "serde",
+ "serde_json",
+ "tokio-postgres",
+]
 
 [[package]]
 name = "ordered-float"

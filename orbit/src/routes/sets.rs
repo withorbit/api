@@ -2,9 +2,9 @@ use axum::extract::{Json, Path, State};
 use axum::http::StatusCode;
 use axum::routing::{delete, get, patch, post, put};
 use axum::Router;
-use orbit_derive::FromRow;
+use orbit_types::models::set::*;
 use orbit_types::snowflake::Snowflake;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use crate::auth::{self, AuthUser};
 use crate::db::Conn;
@@ -23,31 +23,6 @@ pub fn router(state: &AppState) -> Router<AppState> {
 			auth::middleware,
 		))
 		.route("/sets/:id", get(get_set))
-}
-
-#[derive(Debug, Deserialize, Serialize, FromRow)]
-pub struct EmoteSet {
-	pub id: String,
-	pub name: String,
-	pub capacity: i32,
-	pub user_id: String,
-	pub parent_id: Option<String>,
-}
-
-#[derive(Debug, Serialize, FromRow)]
-pub struct EmoteSetWithEmotes {
-	pub id: String,
-	pub name: String,
-	pub capacity: i32,
-	pub user_id: String,
-	pub parent_id: Option<String>,
-	pub emotes: serde_json::Value,
-}
-
-#[derive(Debug, Deserialize)]
-struct CreateEmoteSet {
-	name: String,
-	capacity: i32,
 }
 
 async fn create_set(

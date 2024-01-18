@@ -3,16 +3,13 @@ use axum::extract::{Json, Path, State};
 use axum::http::StatusCode;
 use axum::routing::{delete, get, patch, post};
 use axum::Router;
-use orbit_derive::FromRow;
+use orbit_types::models::emote::*;
 use orbit_types::snowflake::Snowflake;
-use serde::{Deserialize, Serialize};
 
 use crate::auth::{self, AuthUser};
 use crate::db::Conn;
 use crate::error::{Error, JsonError};
 use crate::{AppState, Result};
-
-use super::users::User;
 
 pub fn router(state: &AppState) -> Router<AppState> {
 	Router::new()
@@ -24,48 +21,6 @@ pub fn router(state: &AppState) -> Router<AppState> {
 			auth::middleware,
 		))
 		.route("/emotes/:id", get(get_emote))
-}
-
-#[derive(Debug, Deserialize, Serialize, FromRow)]
-pub struct Emote {
-	pub id: String,
-	pub name: String,
-	pub tags: Vec<String>,
-	pub width: i32,
-	pub height: i32,
-	pub approved: bool,
-	pub public: bool,
-	pub animated: bool,
-	pub modifier: bool,
-	pub nsfw: bool,
-	pub user_id: String,
-}
-
-#[derive(Debug, Deserialize, Serialize, FromRow)]
-pub struct EmoteWithUser {
-	pub id: String,
-	pub name: String,
-	pub tags: Vec<String>,
-	pub width: i32,
-	pub height: i32,
-	pub approved: bool,
-	pub public: bool,
-	pub animated: bool,
-	pub modifier: bool,
-	pub nsfw: bool,
-	pub user: User,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct CreateEmote {
-	name: String,
-	tags: Vec<String>,
-	width: i32,
-	height: i32,
-	public: bool,
-	animated: bool,
-	modifier: bool,
-	nsfw: bool,
 }
 
 async fn create_emote(
@@ -134,12 +89,6 @@ async fn get_emote(
 		.into();
 
 	Ok(Json(emote))
-}
-
-#[derive(Debug, Deserialize)]
-pub struct UpdateEmote {
-	approved: Option<bool>,
-	nsfw: Option<bool>,
 }
 
 async fn update_emote(
