@@ -1,14 +1,9 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{Data, DeriveInput, Item};
 
 pub(crate) fn expand(input: TokenStream) -> TokenStream {
-	let ast = syn::parse::<DeriveInput>(input).expect("Failed to parse token stream");
-
-	let name = ast.ident;
-	let Data::Struct(data) = ast.data else {
-		unreachable!()
-	};
+	let data = syn::parse_macro_input!(input as syn::ItemStruct);
+	let name = data.ident;
 
 	let fields = data.fields.iter().map(|field| {
 		let ident = field.ident.as_ref().unwrap();
@@ -28,7 +23,7 @@ pub(crate) fn expand(input: TokenStream) -> TokenStream {
 		}
 	};
 
-	let tokens: Item = syn::parse_quote!(#tokens);
+	let tokens: syn::Item = syn::parse_quote!(#tokens);
 	let tokens = quote!(#tokens);
 
 	tokens.into()
