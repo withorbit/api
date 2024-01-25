@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-orbit_derive.workspace = true
+orbit_macros.workspace = true
 
 postgres-types.workspace = true
 serde.workspace = true

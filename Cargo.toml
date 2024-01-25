@@ -1,9 +1,9 @@
 [workspace]
-members = ["orbit", "orbit_derive", "orbit_types"]
+members = ["orbit", "orbit_macros", "orbit_types"]
 resolver = "2"
 
 [workspace.dependencies]
-orbit_derive.path = "orbit_derive"
+orbit_macros.path = "orbit_macros"
 orbit_types.path = "orbit_types"
 
 postgres-types = { version = "0.2.6", features = ["derive"] }

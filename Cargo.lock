@@ -1793,7 +1793,7 @@ dependencies = [
  "bb8",
  "bb8-postgres",
  "dotenvy",
- "orbit_derive",
+ "orbit_macros",
  "orbit_types",
  "postgres-types",
  "rand",
@@ -1812,7 +1812,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "orbit_derive"
+name = "orbit_macros"
 version = "0.1.0"
 dependencies = [
  "quote",
@@ -1823,7 +1823,7 @@ dependencies = [
 name = "orbit_types"
 version = "0.1.0"
 dependencies = [
- "orbit_derive",
+ "orbit_macros",
  "postgres-types",
  "serde",
  "serde_json",

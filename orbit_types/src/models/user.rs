@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use orbit_derive::FromRow;
+use orbit_macros::FromRow;
 use serde::{Deserialize, Serialize};
 use tokio_postgres::types::{FromSql, ToSql, Type};
 

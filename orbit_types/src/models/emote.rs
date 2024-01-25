@@ -1,4 +1,4 @@
-use orbit_derive::FromRow;
+use orbit_macros::FromRow;
 use serde::{Deserialize, Serialize};
 
 use super::user::User;
