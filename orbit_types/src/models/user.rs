@@ -4,7 +4,7 @@ use orbit_derive::FromRow;
 use serde::{Deserialize, Serialize};
 use tokio_postgres::types::{FromSql, ToSql, Type};
 
-#[derive(Debug, Deserialize, Serialize, ToSql, FromSql)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, ToSql, FromSql)]
 #[postgres(name = "role", rename_all = "lowercase")]
 pub enum Role {
 	Verified,
@@ -60,4 +60,19 @@ pub struct UserEmoteSet {
 	capacity: i32,
 	user_id: String,
 	parent_id: Option<String>,
+}
+
+#[derive(Serialize, FromRow)]
+pub struct Color {
+	id: String,
+	name: String,
+	gradient: String,
+	shadow: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateColor {
+	pub name: String,
+	pub gradient: String,
+	pub shadow: String,
 }

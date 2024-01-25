@@ -14,6 +14,12 @@ pub enum Error {
 	#[error("{0}")]
 	Unauthorized(String),
 
+	#[error("{0}")]
+	Forbidden(String),
+
+	#[error("{0}")]
+	Conflict(String),
+
 	#[error("422 Unprocessable Entity")]
 	UnprocessableEntity,
 
@@ -38,6 +44,8 @@ impl Error {
 			BadRequest(_) => StatusCode::BAD_REQUEST,
 			NotFound(_) => StatusCode::NOT_FOUND,
 			Unauthorized(_) => StatusCode::UNAUTHORIZED,
+			Forbidden(_) => StatusCode::FORBIDDEN,
+			Conflict(_) => StatusCode::CONFLICT,
 			UnprocessableEntity => StatusCode::UNPROCESSABLE_ENTITY,
 			Cdn | Database(_) | Json(_) | Generic => StatusCode::INTERNAL_SERVER_ERROR,
 		}
@@ -71,7 +79,9 @@ impl From<JsonError> for Error {
 		match value.status_code() {
 			400 => BadRequest(message),
 			401 => Unauthorized(message),
+			403 => Forbidden(message),
 			404 => NotFound(message),
+			409 => Conflict(message),
 			_ => unreachable!(),
 		}
 	}
@@ -96,6 +106,12 @@ pub enum JsonError {
 
 	#[error("Invalid bearer token.")]
 	InvalidToken,
+
+	#[error("Forbidden.")]
+	Forbidden,
+
+	#[error("Color already exists.")]
+	ColorExists,
 }
 
 impl JsonError {
@@ -105,7 +121,9 @@ impl JsonError {
 		match self {
 			UserCannotAddSelf => 400,
 			Unauthorized | InvalidToken => 401,
-			_ => 404,
+			Forbidden => 403,
+			UnknownUser | UnknownEmote | UnknownEmoteSet => 404,
+			ColorExists => 409,
 		}
 	}
 }
