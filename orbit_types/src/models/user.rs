@@ -1,8 +1,6 @@
-use std::error::Error;
-
-use orbit_macros::FromRow;
+use orbit_macros::{FromJsonb, FromRow};
 use serde::{Deserialize, Serialize};
-use tokio_postgres::types::{FromSql, ToSql, Type};
+use tokio_postgres::types::{FromSql, ToSql};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, ToSql, FromSql)]
 #[postgres(name = "role", rename_all = "lowercase")]
@@ -16,7 +14,7 @@ pub enum Role {
 	Admin,
 }
 
-#[derive(Debug, Deserialize, Serialize, FromRow)]
+#[derive(Debug, Deserialize, Serialize, FromJsonb, FromRow)]
 pub struct User {
 	pub id: String,
 	pub twitch_id: i32,
@@ -26,16 +24,6 @@ pub struct User {
 	pub badge_url: Option<String>,
 	pub color_id: Option<String>,
 	pub channel_set_id: String,
-}
-
-impl FromSql<'_> for User {
-	fn from_sql(_: &Type, raw: &'_ [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
-		Ok(serde_json::from_slice(&raw[1..])?)
-	}
-
-	fn accepts(ty: &Type) -> bool {
-		ty == &Type::JSONB
-	}
 }
 
 #[derive(Deserialize, Serialize, FromRow)]
