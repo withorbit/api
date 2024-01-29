@@ -96,8 +96,8 @@ async fn update_emote(
 			"
 			UPDATE emotes
 			SET
-				approved = $1,
-				nsfw = $2
+				approved = COALESCE($1, approved),
+				nsfw = COALESCE($2, nsfw)
 			WHERE id = $3
 			RETURNING *
 			",
