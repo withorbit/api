@@ -1,5 +1,6 @@
 use orbit_macros::{FromJsonb, FromRow};
 use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, DisplayFromStr};
 use tokio_postgres::types::{FromSql, ToSql};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, ToSql, FromSql)]
@@ -14,45 +15,44 @@ pub enum Role {
 	Admin,
 }
 
+#[serde_as]
 #[derive(Debug, Deserialize, Serialize, FromJsonb, FromRow)]
 pub struct User {
-	pub id: String,
+	#[serde_as(serialize_as = "DisplayFromStr")]
+	pub id: i64,
 	pub twitch_id: i32,
 	pub username: String,
 	pub avatar_url: String,
 	pub roles: Vec<Role>,
 	pub badge_url: Option<String>,
-	pub color_id: Option<String>,
-	pub channel_set_id: String,
+
+	#[serde_as(serialize_as = "Option<DisplayFromStr>")]
+	pub color_id: Option<i64>,
+
+	#[serde_as(serialize_as = "DisplayFromStr")]
+	pub channel_set_id: i64,
 }
 
-#[derive(Deserialize, Serialize, FromRow)]
-pub struct UserEmote {
-	id: String,
-	name: String,
-	tags: Vec<String>,
-	width: i32,
-	height: i32,
-	approved: bool,
-	public: bool,
-	animated: bool,
-	modifier: bool,
-	nsfw: bool,
-	user_id: String,
-}
-
+#[serde_as]
 #[derive(Deserialize, Serialize, FromRow)]
 pub struct UserEmoteSet {
-	id: String,
+	#[serde_as(serialize_as = "DisplayFromStr")]
+	id: i64,
 	name: String,
 	capacity: i32,
-	user_id: String,
-	parent_id: Option<String>,
+
+	#[serde_as(serialize_as = "DisplayFromStr")]
+	user_id: i64,
+
+	#[serde_as(serialize_as = "Option<DisplayFromStr>")]
+	parent_id: Option<i64>,
 }
 
+#[serde_as]
 #[derive(Serialize, FromRow)]
 pub struct Color {
-	id: String,
+	#[serde_as(serialize_as = "DisplayFromStr")]
+	id: i64,
 	name: String,
 	gradient: String,
 	shadow: String,

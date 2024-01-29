@@ -12,7 +12,7 @@ fn next_increment() -> i64 {
 }
 
 #[derive(Debug, Clone)]
-pub struct Snowflake(pub String);
+pub struct Snowflake(pub i64);
 
 impl Snowflake {
 	pub const EPOCH: i64 = 1_696_118_400_000;
@@ -27,6 +27,6 @@ impl Snowflake {
 			.as_millis() as i64;
 
 		let id = ((now_ms - Self::EPOCH) << 22) | (increment & 4095i64);
-		Self(id.to_string())
+		Self(id)
 	}
 }

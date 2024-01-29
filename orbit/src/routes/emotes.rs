@@ -65,7 +65,7 @@ async fn create_emote(
 	Ok((StatusCode::CREATED, Json(emote)))
 }
 
-async fn get_emote(Conn(conn): Conn, Path(id): Path<String>) -> Result<Json<EmoteWithUser>> {
+async fn get_emote(Conn(conn): Conn, Path(id): Path<i64>) -> Result<Json<EmoteWithUser>> {
 	let emote = conn
 		.query_opt(
 			r#"
@@ -88,7 +88,7 @@ async fn get_emote(Conn(conn): Conn, Path(id): Path<String>) -> Result<Json<Emot
 
 async fn update_emote(
 	Conn(conn): Conn,
-	Path(id): Path<String>,
+	Path(id): Path<i64>,
 	Json(body): Json<UpdateEmote>,
 ) -> Result<Json<Emote>> {
 	let emote = conn
@@ -113,7 +113,7 @@ async fn update_emote(
 async fn delete_emote(
 	State(state): State<AppState>,
 	Conn(conn): Conn,
-	Path(id): Path<String>,
+	Path(id): Path<i64>,
 ) -> Result<StatusCode> {
 	let deleted: bool = conn
 		.query_one(

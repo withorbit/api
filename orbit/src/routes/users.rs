@@ -2,6 +2,7 @@ use axum::extract::{Json, Path};
 use axum::http::StatusCode;
 use axum::routing::{delete, get, put};
 use axum::Router;
+use orbit_types::models::emote::Emote;
 use orbit_types::models::user::*;
 
 use crate::auth::{self, AuthUser};
@@ -29,7 +30,7 @@ async fn get_current_user(user: AuthUser) -> Result<Json<User>> {
 	Ok(Json(user))
 }
 
-async fn get_user(Conn(conn): Conn, Path(id): Path<String>) -> Result<Json<User>> {
+async fn get_user(Conn(conn): Conn, Path(id): Path<i64>) -> Result<Json<User>> {
 	let user = conn
 		.query_opt("SELECT * FROM users WHERE id = $1", &[&id])
 		.await?
@@ -39,7 +40,7 @@ async fn get_user(Conn(conn): Conn, Path(id): Path<String>) -> Result<Json<User>
 	Ok(Json(user))
 }
 
-async fn get_user_editors(Conn(conn): Conn, Path(id): Path<String>) -> Result<Json<Vec<User>>> {
+async fn get_user_editors(Conn(conn): Conn, Path(id): Path<i64>) -> Result<Json<Vec<User>>> {
 	let editors = conn
 		.query(
 			"
@@ -64,7 +65,7 @@ async fn get_user_editors(Conn(conn): Conn, Path(id): Path<String>) -> Result<Js
 async fn add_user_editor(
 	Conn(conn): Conn,
 	user: AuthUser,
-	Path(id): Path<String>,
+	Path(id): Path<i64>,
 ) -> Result<StatusCode> {
 	conn.execute(
 		"
@@ -83,7 +84,7 @@ async fn add_user_editor(
 async fn remove_user_editor(
 	Conn(conn): Conn,
 	user: AuthUser,
-	Path(id): Path<String>,
+	Path(id): Path<i64>,
 ) -> Result<StatusCode> {
 	let deleted = conn
 		.query_one(
@@ -109,7 +110,7 @@ async fn remove_user_editor(
 	}
 }
 
-async fn get_user_emotes(Conn(conn): Conn, Path(id): Path<String>) -> Result<Json<Vec<UserEmote>>> {
+async fn get_user_emotes(Conn(conn): Conn, Path(id): Path<i64>) -> Result<Json<Vec<Emote>>> {
 	if !user_exists(&conn, &id).await {
 		return Err(Error::NotFound("Unknown user.".to_string()));
 	}
@@ -134,10 +135,7 @@ async fn get_user_emotes(Conn(conn): Conn, Path(id): Path<String>) -> Result<Jso
 	Ok(Json(emotes))
 }
 
-async fn get_user_sets(
-	Conn(conn): Conn,
-	Path(id): Path<String>,
-) -> Result<Json<Vec<UserEmoteSet>>> {
+async fn get_user_sets(Conn(conn): Conn, Path(id): Path<i64>) -> Result<Json<Vec<UserEmoteSet>>> {
 	if !user_exists(&conn, &id).await {
 		return Err(JsonError::UnknownUser.into());
 	}
@@ -162,10 +160,7 @@ async fn get_user_sets(
 	Ok(Json(sets))
 }
 
-async fn get_user_channel_set(
-	Conn(conn): Conn,
-	Path(id): Path<String>,
-) -> Result<Json<UserEmoteSet>> {
+async fn get_user_channel_set(Conn(conn): Conn, Path(id): Path<i64>) -> Result<Json<UserEmoteSet>> {
 	let set = conn
 		.query_one(
 			"
@@ -183,7 +178,7 @@ async fn get_user_channel_set(
 	Ok(Json(set))
 }
 
-async fn user_exists(conn: &Connection, id: &String) -> bool {
+async fn user_exists(conn: &Connection, id: &i64) -> bool {
 	conn.query_one("SELECT EXISTS (SELECT id FROM users WHERE id = $1)", &[&id])
 		.await
 		.unwrap()

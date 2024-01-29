@@ -1,11 +1,14 @@
 use orbit_macros::{FromJsonb, FromRow};
 use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, DisplayFromStr};
 
 use super::user::User;
 
+#[serde_as]
 #[derive(Debug, Deserialize, Serialize, FromJsonb, FromRow)]
 pub struct Emote {
-	id: String,
+	#[serde_as(serialize_as = "DisplayFromStr")]
+	id: i64,
 	name: String,
 	tags: Vec<String>,
 	width: i32,
@@ -15,12 +18,16 @@ pub struct Emote {
 	animated: bool,
 	modifier: bool,
 	nsfw: bool,
-	user_id: String,
+
+	#[serde_as(as = "DisplayFromStr")]
+	user_id: i64,
 }
 
+#[serde_as]
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct EmoteWithUser {
-	id: String,
+	#[serde_as(serialize_as = "DisplayFromStr")]
+	id: i64,
 	name: String,
 	tags: Vec<String>,
 	width: i32,

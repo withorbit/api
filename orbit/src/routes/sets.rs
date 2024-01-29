@@ -4,7 +4,6 @@ use axum::routing::{delete, get, patch, post, put};
 use axum::Router;
 use orbit_types::models::set::*;
 use orbit_types::snowflake::Snowflake;
-use serde::Deserialize;
 
 use crate::auth::{self, AuthUser};
 use crate::db::Conn;
@@ -45,7 +44,7 @@ async fn create_set(
 	Ok(Json(set))
 }
 
-async fn get_set(Conn(conn): Conn, Path(id): Path<String>) -> Result<Json<EmoteSetWithEmotes>> {
+async fn get_set(Conn(conn): Conn, Path(id): Path<i64>) -> Result<Json<EmoteSetWithEmotes>> {
 	let set = conn
 		.query_opt(
 			"
@@ -70,15 +69,9 @@ async fn get_set(Conn(conn): Conn, Path(id): Path<String>) -> Result<Json<EmoteS
 	Ok(Json(set))
 }
 
-#[derive(Debug, Deserialize)]
-struct UpdateEmoteSet {
-	name: Option<String>,
-	capacity: Option<i32>,
-}
-
 async fn update_set(
 	Conn(conn): Conn,
-	Path(id): Path<String>,
+	Path(id): Path<i64>,
 	Json(body): Json<UpdateEmoteSet>,
 ) -> Result<Json<EmoteSet>> {
 	let set = conn
@@ -100,11 +93,7 @@ async fn update_set(
 	Ok(Json(set))
 }
 
-async fn delete_set(
-	Conn(conn): Conn,
-	user: AuthUser,
-	Path(id): Path<String>,
-) -> Result<StatusCode> {
+async fn delete_set(Conn(conn): Conn, user: AuthUser, Path(id): Path<i64>) -> Result<StatusCode> {
 	let deleted = conn
 		.query_one(
 			"
@@ -131,7 +120,7 @@ async fn delete_set(
 
 async fn add_set_emote(
 	Conn(conn): Conn,
-	Path((set_id, emote_id)): Path<(String, String)>,
+	Path((set_id, emote_id)): Path<(i64, i64)>,
 ) -> Result<StatusCode> {
 	conn.execute(
 		"
@@ -156,7 +145,7 @@ async fn add_set_emote(
 
 async fn remove_set_emote(
 	Conn(conn): Conn,
-	Path((set_id, emote_id)): Path<(String, String)>,
+	Path((set_id, emote_id)): Path<(i64, i64)>,
 ) -> Result<StatusCode> {
 	let exists = conn
 		.query_opt("SELECT id FROM sets WHERE id = $1", &[&set_id])
