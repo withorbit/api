@@ -1,24 +1,29 @@
-use orbit_macros::FromRow;
+use orbit_macros::{FromJsonb, FromRow};
 use serde::{Deserialize, Serialize};
+
+use super::emote::Emote;
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct EmoteSet {
-	pub id: String,
-	pub name: String,
-	pub capacity: i32,
-	pub user_id: String,
-	pub parent_id: Option<String>,
+	id: String,
+	name: String,
+	capacity: i32,
+	user_id: String,
+	parent_id: Option<String>,
 }
 
 #[derive(Debug, Serialize, FromRow)]
 pub struct EmoteSetWithEmotes {
-	pub id: String,
-	pub name: String,
-	pub capacity: i32,
-	pub user_id: String,
-	pub parent_id: Option<String>,
-	pub emotes: serde_json::Value,
+	id: String,
+	name: String,
+	capacity: i32,
+	user_id: String,
+	parent_id: Option<String>,
+	emotes: EmoteVec,
 }
+
+#[derive(Debug, Deserialize, Serialize, FromJsonb)]
+struct EmoteVec(Vec<Emote>);
 
 #[derive(Debug, Deserialize)]
 pub struct CreateEmoteSet {

@@ -1,36 +1,36 @@
-use orbit_macros::FromRow;
+use orbit_macros::{FromJsonb, FromRow};
 use serde::{Deserialize, Serialize};
 
 use super::user::User;
 
-#[derive(Debug, Deserialize, Serialize, FromRow)]
+#[derive(Debug, Deserialize, Serialize, FromJsonb, FromRow)]
 pub struct Emote {
-	pub id: String,
-	pub name: String,
-	pub tags: Vec<String>,
-	pub width: i32,
-	pub height: i32,
-	pub approved: bool,
-	pub public: bool,
-	pub animated: bool,
-	pub modifier: bool,
-	pub nsfw: bool,
-	pub user_id: String,
+	id: String,
+	name: String,
+	tags: Vec<String>,
+	width: i32,
+	height: i32,
+	approved: bool,
+	public: bool,
+	animated: bool,
+	modifier: bool,
+	nsfw: bool,
+	user_id: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct EmoteWithUser {
-	pub id: String,
-	pub name: String,
-	pub tags: Vec<String>,
-	pub width: i32,
-	pub height: i32,
-	pub approved: bool,
-	pub public: bool,
-	pub animated: bool,
-	pub modifier: bool,
-	pub nsfw: bool,
-	pub user: User,
+	id: String,
+	name: String,
+	tags: Vec<String>,
+	width: i32,
+	height: i32,
+	approved: bool,
+	public: bool,
+	animated: bool,
+	modifier: bool,
+	nsfw: bool,
+	user: User,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
