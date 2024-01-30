@@ -36,7 +36,6 @@ async fn main(#[shuttle_secrets::Secrets] secrets: SecretStore) -> shuttle_axum:
 	let database_url = get_secret(&secrets, "DATABASE_URL");
 	let s3_config = aws_config::load_from_env().await;
 
-	// todo: use tokio-postgres
 	let pool = db::init_db(database_url).await;
 
 	let app_state = AppState {
