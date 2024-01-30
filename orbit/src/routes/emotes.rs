@@ -23,6 +23,27 @@ pub fn router(state: &AppState) -> Router<AppState> {
 		.route("/emotes/:id", get(get_emote))
 }
 
+async fn get_emote(Conn(conn): Conn, Path(id): Path<i64>) -> Result<Json<EmoteWithUser>> {
+	let emote = conn
+		.query_opt(
+			r#"
+			SELECT
+				emotes.*,
+				to_jsonb(users.*) AS "user"
+			FROM
+				emotes
+				LEFT JOIN users ON emotes.user_id = users.id
+			WHERE emotes.id = $1
+			"#,
+			&[&id],
+		)
+		.await?
+		.ok_or(JsonError::UnknownEmote)?
+		.into();
+
+	Ok(Json(emote))
+}
+
 async fn create_emote(
 	Conn(conn): Conn,
 	user: AuthUser,
@@ -62,28 +83,9 @@ async fn create_emote(
 		.await?
 		.into();
 
+	// todo: image processing + s3
+
 	Ok((StatusCode::CREATED, Json(emote)))
-}
-
-async fn get_emote(Conn(conn): Conn, Path(id): Path<i64>) -> Result<Json<EmoteWithUser>> {
-	let emote = conn
-		.query_opt(
-			r#"
-			SELECT
-				emotes.*,
-				to_jsonb(users.*) AS "user"
-			FROM
-				emotes
-				LEFT JOIN users ON emotes.user_id = users.id
-			WHERE emotes.id = $1
-			"#,
-			&[&id],
-		)
-		.await?
-		.ok_or(JsonError::UnknownEmote)?
-		.into();
-
-	Ok(Json(emote))
 }
 
 async fn update_emote(

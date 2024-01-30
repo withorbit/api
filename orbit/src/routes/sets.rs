@@ -24,26 +24,6 @@ pub fn router(state: &AppState) -> Router<AppState> {
 		.route("/sets/:id", get(get_set))
 }
 
-async fn create_set(
-	Conn(conn): Conn,
-	user: AuthUser,
-	Json(body): Json<CreateEmoteSet>,
-) -> Result<Json<EmoteSet>> {
-	let set = conn
-		.query_one(
-			"
-			INSERT INTO sets (id, name, capacity, user_id)
-			VALUES ($1, $2, $3, $4)
-			RETURNING *
-			",
-			&[&Snowflake::new().0, &body.name, &body.capacity, &user.id],
-		)
-		.await?
-		.into();
-
-	Ok(Json(set))
-}
-
 async fn get_set(Conn(conn): Conn, Path(id): Path<i64>) -> Result<Json<EmoteSetWithEmotes>> {
 	let set = conn
 		.query_opt(
@@ -64,6 +44,26 @@ async fn get_set(Conn(conn): Conn, Path(id): Path<i64>) -> Result<Json<EmoteSetW
 		)
 		.await?
 		.ok_or(JsonError::UnknownEmoteSet)?
+		.into();
+
+	Ok(Json(set))
+}
+
+async fn create_set(
+	Conn(conn): Conn,
+	user: AuthUser,
+	Json(body): Json<CreateEmoteSet>,
+) -> Result<Json<EmoteSet>> {
+	let set = conn
+		.query_one(
+			"
+			INSERT INTO sets (id, name, capacity, user_id)
+			VALUES ($1, $2, $3, $4)
+			RETURNING *
+			",
+			&[&Snowflake::new().0, &body.name, &body.capacity, &user.id],
+		)
+		.await?
 		.into();
 
 	Ok(Json(set))

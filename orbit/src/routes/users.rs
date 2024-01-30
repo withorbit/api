@@ -30,38 +30,6 @@ async fn get_current_user(user: AuthUser) -> Result<Json<User>> {
 	Ok(Json(user))
 }
 
-async fn get_user(Conn(conn): Conn, Path(id): Path<i64>) -> Result<Json<User>> {
-	let user = conn
-		.query_opt("SELECT * FROM users WHERE id = $1", &[&id])
-		.await?
-		.ok_or(JsonError::UnknownUser)?
-		.into();
-
-	Ok(Json(user))
-}
-
-async fn get_user_editors(Conn(conn): Conn, Path(id): Path<i64>) -> Result<Json<Vec<User>>> {
-	let editors = conn
-		.query(
-			"
-			SELECT
-				editor.*
-			FROM
-				users
-				JOIN users_to_editors AS m2m ON users.id = m2m.user_id
-				JOIN users AS editor ON editor.id = m2m.editor_id
-			WHERE users.id = $1
-			",
-			&[&id],
-		)
-		.await?
-		.into_iter()
-		.map(|row| row.into())
-		.collect();
-
-	Ok(Json(editors))
-}
-
 async fn add_user_editor(
 	Conn(conn): Conn,
 	user: AuthUser,
@@ -108,6 +76,38 @@ async fn remove_user_editor(
 	} else {
 		Err(JsonError::UnknownUser.into())
 	}
+}
+
+async fn get_user(Conn(conn): Conn, Path(id): Path<i64>) -> Result<Json<User>> {
+	let user = conn
+		.query_opt("SELECT * FROM users WHERE id = $1", &[&id])
+		.await?
+		.ok_or(JsonError::UnknownUser)?
+		.into();
+
+	Ok(Json(user))
+}
+
+async fn get_user_editors(Conn(conn): Conn, Path(id): Path<i64>) -> Result<Json<Vec<User>>> {
+	let editors = conn
+		.query(
+			"
+			SELECT
+				editor.*
+			FROM
+				users
+				JOIN users_to_editors AS m2m ON users.id = m2m.user_id
+				JOIN users AS editor ON editor.id = m2m.editor_id
+			WHERE users.id = $1
+			",
+			&[&id],
+		)
+		.await?
+		.into_iter()
+		.map(|row| row.into())
+		.collect();
+
+	Ok(Json(editors))
 }
 
 async fn get_user_emotes(Conn(conn): Conn, Path(id): Path<i64>) -> Result<Json<Vec<Emote>>> {
