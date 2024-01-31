@@ -21,6 +21,7 @@ pub fn router(state: &AppState) -> Router<AppState> {
 			auth::middleware,
 		))
 		.route("/emotes/:id", get(get_emote))
+		.route("/emotes/search", get(search_emotes))
 }
 
 async fn get_emote(
@@ -59,6 +60,10 @@ async fn get_emote(
 		.into();
 
 	Ok(Json(emote))
+}
+
+async fn search_emotes(Conn(conn): Conn, Query(query): Query<GetEmoteQuery>) {
+	todo!()
 }
 
 async fn create_emote(

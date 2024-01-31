@@ -64,6 +64,12 @@ pub struct GetEmoteQuery {
 	pub version: Option<i64>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct SearchEmotesQuery {
+	#[serde(rename(deserialize = "q"))]
+	pub query: Option<String>,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct CreateEmote {
 	pub name: String,
