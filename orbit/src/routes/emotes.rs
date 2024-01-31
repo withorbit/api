@@ -62,7 +62,7 @@ async fn get_emote(
 	Ok(Json(emote))
 }
 
-async fn search_emotes(Conn(conn): Conn, Query(query): Query<GetEmoteQuery>) {
+async fn search_emotes(Conn(conn): Conn, Query(query): Query<SearchEmotesQuery>) {
 	todo!()
 }
 
