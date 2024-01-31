@@ -24,11 +24,7 @@ pub fn router(state: &AppState) -> Router<AppState> {
 		.route("/emotes/search", get(search_emotes))
 }
 
-async fn get_emote(
-	Conn(conn): Conn,
-	Path(id): Path<i64>,
-	Query(query): Query<GetEmoteQuery>,
-) -> Result<Json<EmoteWithUser>> {
+async fn get_emote(Conn(conn): Conn, Path(id): Path<i64>) -> Result<Json<EmoteWithUser>> {
 	let emote = conn
 		.query_opt(
 			r#"
@@ -53,7 +49,7 @@ async fn get_emote(
 				emotes.id,
 				users.id
 			"#,
-			&[&query.version.unwrap_or(id)],
+			&[&id],
 		)
 		.await?
 		.ok_or(JsonError::UnknownEmote)?
