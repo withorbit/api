@@ -1,5 +1,5 @@
 use aws_sdk_s3::types::{Delete, ObjectIdentifier};
-use axum::extract::{Json, Path, State};
+use axum::extract::{Json, Path, Query, State};
 use axum::http::StatusCode;
 use axum::routing::{delete, get, patch, post};
 use axum::Router;
@@ -23,19 +23,36 @@ pub fn router(state: &AppState) -> Router<AppState> {
 		.route("/emotes/:id", get(get_emote))
 }
 
-async fn get_emote(Conn(conn): Conn, Path(id): Path<i64>) -> Result<Json<EmoteWithUser>> {
+async fn get_emote(
+	Conn(conn): Conn,
+	Path(id): Path<i64>,
+	Query(query): Query<GetEmoteQuery>,
+) -> Result<Json<EmoteWithUser>> {
 	let emote = conn
 		.query_opt(
 			r#"
 			SELECT
 				emotes.*,
-				to_jsonb(users.*) AS "user"
+				to_jsonb(users.*) AS "user",
+				COALESCE(
+					array_agg(
+						versions.id ORDER BY versions.id
+					) FILTER (
+						WHERE versions.id IS NOT NULL
+					),
+					'{}'
+				) AS versions
 			FROM
 				emotes
 				LEFT JOIN users ON emotes.user_id = users.id
-			WHERE emotes.id = $1
+				LEFT JOIN versions ON emotes.id = versions.emote_id
+			WHERE
+				emotes.id = $1
+			GROUP BY
+				emotes.id,
+				users.id
 			"#,
-			&[&id],
+			&[&query.version.unwrap_or(id)],
 		)
 		.await?
 		.ok_or(JsonError::UnknownEmote)?
