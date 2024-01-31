@@ -2,7 +2,7 @@ use axum::extract::Json;
 use axum::routing::post;
 use axum::Router;
 use orbit_types::models::user::{Color, CreateColor, Role};
-use orbit_types::snowflake::Snowflake;
+use orbit_types::Snowflake;
 
 use crate::auth::AuthUser;
 use crate::db::Conn;

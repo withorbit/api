@@ -3,7 +3,7 @@ use axum::http::StatusCode;
 use axum::routing::{delete, get, patch, post, put};
 use axum::Router;
 use orbit_types::models::set::*;
-use orbit_types::snowflake::Snowflake;
+use orbit_types::Snowflake;
 
 use crate::auth::{self, AuthUser};
 use crate::db::Conn;
