@@ -52,14 +52,23 @@ async fn get_emote(Conn(conn): Conn, Path(id): Path<i64>) -> Result<Json<EmoteWi
 			&[&id],
 		)
 		.await?
-		.ok_or(JsonError::UnknownEmote)?
+		.ok_or(JsonError::UnknownEntity("emote".into()))?
 		.into();
 
 	Ok(Json(emote))
 }
 
-async fn search_emotes(Conn(conn): Conn, Query(query): Query<SearchEmotesQuery>) {
-	todo!()
+async fn search_emotes(
+	State(state): State<AppState>,
+	Query(query): Query<SearchEmotesQuery>,
+) -> Result<Json<Vec<Emote>>> {
+	let filters: Vec<&str> = query.filters.split(',').collect();
+
+	if let Some(query) = query.query {
+		todo!();
+	}
+
+	Ok(Json(vec![]))
 }
 
 async fn create_emote(
@@ -124,7 +133,7 @@ async fn update_emote(
 			&[&body.approved, &body.nsfw, &id],
 		)
 		.await?
-		.ok_or(JsonError::UnknownEmote)?
+		.ok_or(JsonError::UnknownEntity("emote".into()))?
 		.into();
 
 	Ok(Json(emote))
@@ -189,6 +198,6 @@ async fn delete_emote(
 	if deleted {
 		Ok(StatusCode::NO_CONTENT)
 	} else {
-		Err(JsonError::UnknownEmote.into())
+		Err(JsonError::UnknownEntity("emote".into()).into())
 	}
 }

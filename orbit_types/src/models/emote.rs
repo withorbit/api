@@ -62,6 +62,9 @@ pub struct EmoteVersion {
 pub struct SearchEmotesQuery {
 	#[serde(rename(deserialize = "q"))]
 	pub query: Option<String>,
+
+	#[serde(default)]
+	pub filters: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

@@ -19,6 +19,7 @@ axum = { version = "0.7.2", features = ["macros", "multipart"] }
 bb8 = "0.8.1"
 bb8-postgres = "0.8.1"
 dotenvy = "0.15.7"
+meilisearch-sdk = "0.24.3"
 shuttle-axum = { version = "0.35.0", default-features = false, features = ["axum-0-7"] }
 shuttle-runtime = { version = "0.35.0", default-features = false }
 shuttle-secrets = "0.35.2"

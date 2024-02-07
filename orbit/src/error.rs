@@ -23,17 +23,20 @@ pub enum Error {
 	#[error("422 Unprocessable Entity")]
 	UnprocessableEntity,
 
+	#[error("500 Internal Server Error")]
+	Generic,
+
 	#[error("500 Internal Server Error (CDN)")]
 	Cdn,
-
-	#[error("500 Internal Server Error (Database)")]
-	Database(#[from] tokio_postgres::Error),
 
 	#[error("500 Internal Server Error (JSON)")]
 	Json(#[from] serde_json::Error),
 
-	#[error("500 Internal Server Error")]
-	Generic,
+	#[error("500 Internal Server Error (Database)")]
+	Database(#[from] tokio_postgres::Error),
+
+	#[error("500 Internal Server Error (Search")]
+	Search(#[from] meilisearch_sdk::Error),
 }
 
 impl Error {
@@ -47,7 +50,7 @@ impl Error {
 			Forbidden(_) => StatusCode::FORBIDDEN,
 			Conflict(_) => StatusCode::CONFLICT,
 			UnprocessableEntity => StatusCode::UNPROCESSABLE_ENTITY,
-			Cdn | Database(_) | Json(_) | Generic => StatusCode::INTERNAL_SERVER_ERROR,
+			Generic | Cdn | Json(_) | Database(_) | Search(_) => StatusCode::INTERNAL_SERVER_ERROR,
 		}
 	}
 }
@@ -55,10 +58,13 @@ impl Error {
 impl IntoResponse for Error {
 	fn into_response(self) -> Response {
 		match self {
+			Self::Json(ref err) => {
+				tracing::error!(?err);
+			}
 			Self::Database(ref err) => {
 				tracing::error!(?err);
 			}
-			Self::Json(ref err) => {
+			Self::Search(ref err) => {
 				tracing::error!(?err);
 			}
 			_ => (),
@@ -89,14 +95,8 @@ impl From<JsonError> for Error {
 
 #[derive(thiserror::Error, Debug)]
 pub enum JsonError {
-	#[error("Unknown user.")]
-	UnknownUser,
-
-	#[error("Unknown emote.")]
-	UnknownEmote,
-
-	#[error("Unknown emote set.")]
-	UnknownEmoteSet,
+	#[error("Unknown {0}.")]
+	UnknownEntity(String),
 
 	#[error("User cannot add themselves as an editor to their own channel.")]
 	UserCannotAddSelf,
@@ -122,7 +122,7 @@ impl JsonError {
 			UserCannotAddSelf => 400,
 			Unauthorized | InvalidToken => 401,
 			Forbidden => 403,
-			UnknownUser | UnknownEmote | UnknownEmoteSet => 404,
+			UnknownEntity(_) => 404,
 			ColorExists => 409,
 		}
 	}

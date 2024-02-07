@@ -7,6 +7,7 @@ use std::time::Duration;
 
 use axum::http::Request;
 use axum::Router;
+use meilisearch_sdk::client::Client as MeilisearchClient;
 use shuttle_secrets::SecretStore;
 use tower::ServiceBuilder;
 use tower_http::timeout::TimeoutLayer;
@@ -21,6 +22,7 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 #[derive(Clone)]
 struct AppState {
 	s3: aws_sdk_s3::Client,
+	ms: MeilisearchClient,
 	pool: db::Pool,
 }
 
@@ -33,14 +35,23 @@ async fn main(#[shuttle_secrets::Secrets] secrets: SecretStore) -> shuttle_axum:
 		.with(fmt::layer())
 		.init();
 
-	let database_url = get_secret(&secrets, "DATABASE_URL");
 	let s3_config = aws_config::load_from_env().await;
 
-	let pool = db::init_db(database_url).await;
+	let meilisearch_url = get_secret(&secrets, "MEILISEARCH_URL");
+	let meilisearch_key = get_secret(&secrets, "MEILISEARCH_KEY");
+	let database_url = get_secret(&secrets, "DATABASE_URL");
+
+	let ms = MeilisearchClient::new(meilisearch_url, Some(meilisearch_key));
+
+	ms.index("emotes")
+		.set_searchable_attributes(["name"])
+		.await
+		.expect("Failed to set searchable attributes");
 
 	let app_state = AppState {
 		s3: aws_sdk_s3::Client::new(&s3_config),
-		pool,
+		ms,
+		pool: db::init_db(database_url).await,
 	};
 
 	let router = Router::new()
@@ -65,5 +76,5 @@ async fn main(#[shuttle_secrets::Secrets] secrets: SecretStore) -> shuttle_axum:
 }
 
 fn get_secret(secrets: &SecretStore, key: &str) -> String {
-	secrets.get(key).expect(&format!("`{key}` not set."))
+	secrets.get(key).expect(&format!("`{key}` not set"))
 }

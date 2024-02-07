@@ -74,7 +74,7 @@ async fn remove_user_editor(
 	if deleted {
 		Ok(StatusCode::NO_CONTENT)
 	} else {
-		Err(JsonError::UnknownUser.into())
+		Err(JsonError::UnknownEntity("user".into()).into())
 	}
 }
 
@@ -82,7 +82,7 @@ async fn get_user(Conn(conn): Conn, Path(id): Path<i64>) -> Result<Json<User>> {
 	let user = conn
 		.query_opt("SELECT * FROM users WHERE id = $1", &[&id])
 		.await?
-		.ok_or(JsonError::UnknownUser)?
+		.ok_or(JsonError::UnknownEntity("user".into()))?
 		.into();
 
 	Ok(Json(user))
@@ -137,7 +137,7 @@ async fn get_user_emotes(Conn(conn): Conn, Path(id): Path<i64>) -> Result<Json<V
 
 async fn get_user_sets(Conn(conn): Conn, Path(id): Path<i64>) -> Result<Json<Vec<UserEmoteSet>>> {
 	if !user_exists(&conn, &id).await {
-		return Err(JsonError::UnknownUser.into());
+		return Err(JsonError::UnknownEntity("user".into()).into());
 	}
 
 	let sets = conn

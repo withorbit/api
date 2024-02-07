@@ -32,7 +32,7 @@ impl FromRequestParts<AppState> for AuthUser {
 		let user = conn
 			.query_opt("SELECT * FROM users WHERE id = $1", &[&user_id])
 			.await?
-			.ok_or(JsonError::UnknownUser)?
+			.ok_or(JsonError::UnknownEntity("user".into()))?
 			.into();
 
 		Ok(user)

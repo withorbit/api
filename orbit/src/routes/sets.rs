@@ -43,7 +43,7 @@ async fn get_set(Conn(conn): Conn, Path(id): Path<i64>) -> Result<Json<EmoteSetW
 			&[&id],
 		)
 		.await?
-		.ok_or(JsonError::UnknownEmoteSet)?
+		.ok_or(JsonError::UnknownEntity("emote set".into()))?
 		.into();
 
 	Ok(Json(set))
@@ -87,7 +87,7 @@ async fn update_set(
 			&[&body.name, &body.capacity, &id],
 		)
 		.await?
-		.ok_or(JsonError::UnknownEmoteSet)?
+		.ok_or(JsonError::UnknownEntity("emote set".into()))?
 		.into();
 
 	Ok(Json(set))
@@ -114,7 +114,7 @@ async fn delete_set(Conn(conn): Conn, user: AuthUser, Path(id): Path<i64>) -> Re
 	if deleted {
 		Ok(StatusCode::NO_CONTENT)
 	} else {
-		Err(JsonError::UnknownEmoteSet.into())
+		Err(JsonError::UnknownEntity("emote set".into()).into())
 	}
 }
 
@@ -133,11 +133,11 @@ async fn add_set_emote(
 	.await
 	.on_constraint(
 		"emotes_to_sets_set_id_fkey",
-		JsonError::UnknownEmoteSet.into(),
+		JsonError::UnknownEntity("emote set".into()).into(),
 	)
 	.on_constraint(
 		"emotes_to_sets_emote_id_fkey",
-		JsonError::UnknownEmote.into(),
+		JsonError::UnknownEntity("emote".into()).into(),
 	)?;
 
 	Ok(StatusCode::NO_CONTENT)
@@ -152,7 +152,7 @@ async fn remove_set_emote(
 		.await?;
 
 	if exists.is_none() {
-		return Err(JsonError::UnknownEmoteSet.into());
+		return Err(JsonError::UnknownEntity("emote set".into()).into());
 	}
 
 	let deleted = conn
@@ -175,6 +175,6 @@ async fn remove_set_emote(
 	if deleted {
 		Ok(StatusCode::NO_CONTENT)
 	} else {
-		Err(JsonError::UnknownEmote.into())
+		Err(JsonError::UnknownEntity("emote".into()).into())
 	}
 }
