@@ -1,15 +1,23 @@
 services:
   db:
     container_name: orbit-db
-    image: postgres:latest
+    image: postgres
     ports:
       - 5432:5432
     environment:
       POSTGRES_HOST_AUTH_METHOD: trust
   search:
     container_name: orbit-search
-    image: getmeili/meilisearch:latest
+    image: getmeili/meilisearch
     ports:
       - 7700:7700
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+  search-sync:
+    container_name: orbit-search-sync
+    platform: linux/x86_64
+    image: long2ice/meilisync
+    volumes:
+      - ./config.yml:/orbit-search-sync/config.yml
     environment:
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}

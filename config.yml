@@ -1,0 +1,12 @@
+meilisearch:
+  api_url: http://host.docker.internal:7700/
+  api_key: ${MEILI_MASTER_KEY}
+  insert_size: 1000
+  insert_interval: 10
+source:
+  type: postgres
+  host: 127.0.0.1
+  port: 5432
+  database:
+  user:
+  password:

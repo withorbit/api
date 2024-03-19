@@ -1,5 +1,5 @@
 [workspace]
-members = ["orbit", "orbit_macros", "orbit_seed", "orbit_types"]
+members = ["orbit", "orbit_image", "orbit_macros", "orbit_types"]
 resolver = "2"
 
 [workspace.dependencies]
